@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  /* 🎨 INAYOS DITO: Direct value assignment para sa Tailwind v4 design token utilities */
+  --color-ink: #14171F;
+  --color-paper: #F6F5F0;
+  --color-marigold: #E8A33D;
+  --color-marigold-dark: #C97F1E;
+  --color-teal: #1B6F5F;
+  --color-teal-light: #DCEEE9;
+  --color-coral: #C1443B;
+
+  /* 🛠️ INAYOS DITO: Inilatag nang tama ang native family strings para hindi maghanap ng broken variables */
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
+/* Global resets using your newly declared theme tokens */
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}

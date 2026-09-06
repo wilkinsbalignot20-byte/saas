@@ -1,0 +1,28 @@
+﻿services:
+  node_app:
+    build: .
+    container_name: wilkins_node_app
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: wilkins_n8n
+    restart: always
+    ports:
+      - "5679:5678"
+    volumes:
+      - wilkins_n8n_storage:/home/node/.n8n
+    environment:
+      - N8N_SECURE_COOKIE=false
+    depends_on:
+      - node_app
+
+volumes:
+  wilkins_n8n_storage:
