@@ -1,80 +1,105 @@
- 'use client';
+ // src/components/CartSidebar.tsx
+'use client';
 
-import { useCart } from "../context/CartContext";
-import { useState } from "react";
+import { X, ShoppingBag, Trash2 } from 'lucide-react';
+// INAYOS: Kumukuha na sa tamang custom hook ng iyong context file layout tree node
+import { useCart } from '../context/CartContext'; 
 
-export default function CartSidebar() {
-  const { cart, removeFromCart, getCartTotal, clearCart } = useCart();
-  const [isOpen, setIsOpen] = useState(false);
+interface CartSidebarProps {
+  // Dahil walang isOpen/setIsOpen sa iyong Context, ipapasa natin ang control loop property
+  // na ito mula sa parent frame layout tree nodes
+  onClose?: () => void;
+}
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+export default function CartSidebar({ onClose }: CartSidebarProps) {
+  // INAYOS: Ginamit ang saktong kontrata ng iyong CartContext.tsx ('cart' at 'getCartTotal')
+  const { cart, removeFromCart, getCartTotal } = useCart();
+
+  const totalAmount = getCartTotal();
 
   return (
-    <>
-      {/* 🛒 FLOATING CART BUTTON (Nakikitang indicator sa screen) */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-all z-50 flex items-center space-x-2 active:scale-95"
-      >
-        <span>🛒</span>
-        <span className="font-bold text-sm bg-white text-blue-600 px-2 py-0.5 rounded-full">
-          {totalItems}
-        </span>
-      </button>
+    <div className="fixed inset-0 z-50 flex justify-end font-body antialiased animate-in fade-in duration-200">
+      {/* Backdrop overlay window panel shadow filter */}
+      <div 
+        onClick={onClose}
+        className="absolute inset-0 bg-ink/40 backdrop-blur-xs cursor-pointer"
+      />
 
-      {/* 🪟 THE SIDEBAR OVERLAY */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 transition-opacity">
-          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl p-6 flex flex-col justify-between text-gray-900 animate-slide-in">
-            
-            {/* Header */}
-            <div className="flex justify-between items-center border-b pb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">Shopping Cart 🛍️</h2>
-              <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold p-2">✕</button>
-            </div>
-
-            {/* Listahan ng Order */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-4">
-              {cart.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 text-sm">Walang laman ang iyong cart.</div>
-              ) : (
-                cart.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl border">
-                    <div>
-                      <h4 className="font-semibold text-sm line-clamp-1">{item.name}</h4>
-                      <p className="text-xs text-gray-500">₱{item.price} x {item.quantity}</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="font-bold text-sm text-blue-600">₱{item.price * item.quantity}</span>
-                      <button onClick={() => removeFromCart(item.id)} className="text-red-500 text-xs p-1 hover:underline">Alisin</button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Footer / Kabuuang Bayarin */}
-            <div className="border-t pt-4 space-y-4">
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total:</span>
-                <span className="text-blue-600">₱{getCartTotal().toLocaleString('en-US')}</span>
-              </div>
-              
-              {cart.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={clearCart} className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-xl text-xs transition">
-                    Clear Cart
-                  </button>
-                  <button onClick={() => alert("Proceeding to Checkout...")} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-xs text-center shadow-md transition">
-                    Checkout
-                  </button>
-                </div>
-              )}
-            </div>
-
+      {/* Main Sidebar slide-out sheet */}
+      <aside className="relative w-full max-w-md h-full bg-paper border-l border-ink/10 shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-right duration-300">
+        
+        {/* Header toolbar console */}
+        <div className="p-5 border-b border-ink/5 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-2">
+            <ShoppingBag size={18} className="text-marigold" />
+            <h2 className="font-display font-bold text-lg text-ink">Shopping Bag</h2>
+            <span className="bg-ink/5 text-ink text-xs font-semibold px-2 py-0.5 rounded-full">
+              {cart.length}
+            </span>
           </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-ink/5 rounded-full text-ink/50 hover:text-ink transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
         </div>
-      )}
-    </>
+        {/* Dynamic Cart Items list content logging viewport */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-3 py-20">
+              <div className="w-12 h-12 rounded-full bg-ink/5 flex items-center justify-center text-ink/30 text-xl">
+                🛒
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-ink">Your bag is empty</p>
+                <p className="text-xs text-ink/40 mt-0.5">Items you add will appear here.</p>
+              </div>
+            </div>
+          ) : (
+            cart.map((item) => (
+              <div key={item.id} className="flex items-start gap-4 p-3 bg-white border border-ink/5 rounded-xl shadow-xs">
+                {/* Fallback space o placeholder kung walang nakuhang custom item link field data model */}
+                <div className="w-16 h-16 bg-gray-100 rounded-lg border border-ink/5 shrink-0 flex items-center justify-center text-lg shadow-inner">
+                  📦
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h4 className="text-xs font-bold text-ink truncate">{item.name}</h4>
+                  <p className="text-[11px] text-ink/40 font-mono">Qty: {item.quantity}</p>
+                  <p className="text-xs font-semibold text-ink">
+                    ₱{Number(item.price * item.quantity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => removeFromCart(item.id)}
+                  className="p-1.5 hover:bg-coral/10 text-ink/30 hover:text-coral rounded-lg transition-colors cursor-pointer self-center"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Action calculations submission processing footer nodes */}
+        {cart.length > 0 && (
+          <div className="p-5 bg-white border-t border-t-ink/10 space-y-4 shadow-inner">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-ink/50">Subtotal Amount</span>
+              <span className="font-display font-bold text-lg text-ink">
+                ₱{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            
+            <button 
+              className="w-full bg-ink hover:bg-ink/90 text-paper font-semibold py-3.5 rounded-full text-xs shadow-md transition transform active:scale-95 text-center block cursor-pointer"
+            >
+              Proceed to Secure Checkout
+            </button>
+          </div>
+        )}
+
+      </aside>
+    </div>
   );
 }

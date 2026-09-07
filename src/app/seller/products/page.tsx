@@ -1,4 +1,5 @@
- 'use client';
+ // src/app/seller/products/page.tsx
+'use client';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
@@ -19,26 +20,25 @@ export default function SellerProductsPage() {
         setLoading(true);
         setErrorMessage('');
 
-        // 🎯 DYNAMIC BRIDGE: Kunin ang kasalukuyang naka-log in na user session
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // INAYOS: Ginamit ang getSession framework para sa matatag na sync data matching pipeline
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (userError || !user) {
+        if (sessionError || !session) {
           throw new Error('Walang aktibong session. Mangyaring mag-log in muli.');
         }
 
-        // Kukuha muna ng store_id na pagmamay-ari ng user mula sa iyong 'stores' table
+        // INAYOS: Itinama mula user_id patungong owner_id upang tumugma sa database tables natin
         const { data: storeData, error: storeError } = await supabase
           .from('stores')
           .select('id')
-          .eq('user_id', user.id)
-          .single();
+          .eq('owner_id', session.user.id)
+          .maybeSingle();
 
         if (storeError || !storeData) {
-          // Fallback: Kung wala pang store record, gumamit muna ng iyong verified store ID para sa testing
-          console.warn('Wala pang store row para sa user na ito. Gagamitin ang default verified ID para sa testing.');
+          throw new Error('Hindi nahanap ang profile record ng iyong tindahan.');
         }
 
-        const activeStoreId = storeData?.id || '54f9be83-6bc6-4b2b-9815-f81875955d73';
+        const activeStoreId = storeData.id;
 
         // Kunin ang mga produkto gamit ang dynamic active store ID
         const { data, error } = await supabase
@@ -71,7 +71,6 @@ export default function SellerProductsPage() {
       }
     }
   };
-
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       
@@ -107,7 +106,7 @@ export default function SellerProductsPage() {
             placeholder="Maghanap ng produkto sa iyong catalog..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-ink/10 text-xs rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-ink/30"
+            className="w-full bg-white border border-ink/10 text-xs rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:border-ink/30 text-ink font-medium"
           />
         </div>
       </div>
@@ -154,7 +153,7 @@ export default function SellerProductsPage() {
                       <td className="py-4 px-6 text-center font-mono font-semibold">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full font-semibold text-[10px] tracking-wide uppercase ${
                           product.stock > 5 
-                            ? 'bg-[var(--color-teal-light)] text-[var(--color-teal)]' 
+                            ? 'bg-emerald-50 text-emerald-700' 
                             : 'bg-amber-100 text-amber-800'
                         }`}>
                           {product.stock} units
@@ -167,14 +166,14 @@ export default function SellerProductsPage() {
                             className="p-2 border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5 rounded-xl transition cursor-pointer"
                             title="I-edit ang Produkto"
                           >
-                            <Edit2 size={13} />
+                            <Edit2 size={13} className="pointer-events-none" />
                           </button>
                           <button 
                             onClick={() => handleDeleteProduct(product.id)}
-                            className="p-2 border border-ink/10 text-[var(--color-coral)] hover:bg-rose-50/50 rounded-xl transition cursor-pointer"
+                            className="p-2 border border-ink/10 text-coral hover:bg-rose-50/50 rounded-xl transition cursor-pointer"
                             title="Burahin ang Produkto"
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={13} className="pointer-events-none" />
                           </button>
                         </div>
                       </td>

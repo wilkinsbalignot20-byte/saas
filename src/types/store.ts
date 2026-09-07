@@ -7,4 +7,6 @@ export interface Store {
   theme_color: string;     // Hex code para sa disenyo ng header (hal. "#10b981")
   status: 'active' | 'suspended' | 'trial'; // Limitadong pagpipilian para sa kaligtasan ng system
   created_at: string;      // Petsa kung kailan ginawa ang shop
+  logo_url?: string | null; // Opsyonal na link ng uploaded logo galing storage bucket
+  background_preset: string; // Uri ng background preset para sa tindahan
 }
