@@ -1,8 +1,7 @@
- // src/app/onboarding/page.tsx [PART 1 OF 3]
-'use client';
+ 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase'; // 🟢 Inayos: Gumagamit na ng unibersal na path alias shortcut
+import { useState, useEffect, Suspense } from 'react';
+import { supabase } from '../../lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function SellerOnboardingPageContent() {
@@ -30,17 +29,15 @@ function SellerOnboardingPageContent() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  // 🚀 REAL-TIME SESSION ENGINE VALIDATOR: Awtomatikong sasalain ang OAuth account metadata details
+  // 🚀 REAL-TIME SESSION ENGINE VALIDATOR
   useEffect(() => {
     const fetchOAuthData = async () => {
       try {
-        // 1. Kumuha ng structural reference name mula sa link parameter passing utilities
         const nameFromUrl = searchParams.get('name');
         if (nameFromUrl) {
           setOwnerName(decodeURIComponent(nameFromUrl));
         }
 
-        // 2. I-verify ang operational core user parameters mula sa Supabase Auth layer upang maiwasan ang deadlock loops
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError || !user) {
@@ -50,13 +47,11 @@ function SellerOnboardingPageContent() {
         
         setUserId(user.id);
 
-        // Fallback parameter assignment kung blangko ang in-url meta queries
         if (!nameFromUrl) {
           const metadataName = user.user_metadata?.full_name || user.user_metadata?.name || '';
           setOwnerName(metadataName);
         }
 
-        // 3. Double-check guard loop: Kung may table deployment record na ang user, ipadala na sa bagong path prefix
         const { data: existingStore } = await supabase
           .from('stores')
           .select('slug')
@@ -77,7 +72,6 @@ function SellerOnboardingPageContent() {
     fetchOAuthData();
   }, [searchParams, router]);
 
-  // Clean format lowercase deployment URL engine builder handle
   const handleStoreNameChange = (val: string) => {
     setStoreName(val);
     const autoSlug = val
@@ -87,7 +81,6 @@ function SellerOnboardingPageContent() {
     setStoreSlug(autoSlug);
   };
 
-  // Immediate Client-Side Asset Allocation Viewer Utility
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -96,12 +89,9 @@ function SellerOnboardingPageContent() {
     }
   };
 
-  // Evaluation field control verification rule checker
   const isFormValid = () => {
     return businessName && contactNumber && pickupAddress && storeName && storeSlug;
   };
-// src/app/onboarding/page.tsx [PART 2 OF 3]
-
   const handleCompleteOnboarding = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid() || !userId) {
@@ -112,7 +102,6 @@ function SellerOnboardingPageContent() {
     setMessage('');
 
     try {
-      // 1. I-verify muna kung existing na ang store slug para maiwasan ang unique constraint duplicate data errors
       const { data: existingStore, error: slugCheckError } = await supabase
         .from('stores')
         .select('slug')
@@ -129,7 +118,6 @@ function SellerOnboardingPageContent() {
 
       let uploadedLogoUrl: string | null = null;
 
-      // 2. Opsyonal na Media Engine Asset streaming upload sa cloud bucket storage
       if (logoFile) {
         const fileExtension = logoFile.name.split('.').pop();
         const fileName = `${userId}-${Date.now()}.${fileExtension}`;
@@ -143,7 +131,6 @@ function SellerOnboardingPageContent() {
 
         if (uploadError) throw uploadError;
 
-        // Kunin ang permanenteng secure public url endpoint link galing cloud resource node
         const { data: { publicUrl } } = supabase.storage
           .from('logos')
           .getPublicUrl(fileName);
@@ -151,7 +138,6 @@ function SellerOnboardingPageContent() {
         uploadedLogoUrl = publicUrl;
       }
 
-      // 3. I-insert ang bagong merchant profile data base sa stores schema definitions gamit ang monetization pricing structure defaults
       const { error: storeError } = await supabase.from('stores').insert([
         {
           name: storeName,
@@ -178,7 +164,6 @@ function SellerOnboardingPageContent() {
     }
   };
 
-  // SUCCESS SCREEN RENDER VIEW INTERFACE (RE-ALIGNED TO NEW DASHBOARD ROUTE MATRIX)
   if (message === 'success') {
     return (
       <div className="min-h-screen bg-paper text-ink font-body antialiased flex flex-col justify-center items-center p-6">
@@ -191,12 +176,10 @@ function SellerOnboardingPageContent() {
             Welcome aboard <span className="font-semibold text-ink">{ownerName}</span>! Your store <span className="font-semibold text-ink">{storeName}</span> is now active. Your link is live at:
           </p>
           
-          {/* UPDATED PUBLIC PREVIEW EMBEDDED LINK WITH DASHBOARD PREFIX */}
           <div className="bg-ink/5 p-3 rounded-xl font-mono text-sm text-ink font-medium select-all mb-8">
             https://manipu.com{storeSlug}
           </div>
 
-          {/* 🟢 FIXED ROUTER REDIRECTION PATH NODE LINK - Target ang dashboard folder configuration block */}
           <button
             onClick={() => router.push(`/dashboard/${storeSlug}`)}
             className="w-full bg-ink text-paper font-semibold py-3.5 rounded-full text-sm hover:bg-ink/90 transition-colors shadow-lg cursor-pointer"
@@ -208,24 +191,21 @@ function SellerOnboardingPageContent() {
     );
   }
 
-  // Interstitial system loader for active secure validation processes
   if (sessionLoading) {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center text-ink font-body">
         <div className="text-center space-y-2">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-marigold border-t-transparent mx-auto"></div>
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent mx-auto"></div>
           <p className="text-xs font-mono text-ink/40">Verifying session architecture matrix...</p>
         </div>
       </div>
     );
   }
-// src/app/onboarding/page.tsx [PART 3 OF 3]
 
   return (
     <div className="min-h-screen bg-paper text-ink flex flex-col items-center justify-center p-6 font-body antialiased">
       <div className="max-w-md w-full">
         
-        {/* Header Branding Panel */}
         <div className="text-center mb-8">
           <h1 className="font-display font-bold text-3xl tracking-tight mb-2">Complete your profile</h1>
           <p className="text-ink/50 text-sm">Hi {ownerName}, let&apos;s finalize your configuration maps to launch your active store space.</p>
@@ -233,12 +213,11 @@ function SellerOnboardingPageContent() {
 
         <form onSubmit={handleCompleteOnboarding} className="bg-white border border-ink/10 rounded-2xl shadow-sm p-8 space-y-6">
           {message && message !== 'success' && (
-            <div className="p-3 bg-coral/10 text-coral rounded-xl text-sm mb-2">{message}</div>
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-mono mb-2">{message}</div>
           )}
 
-          {/* BLOCK A: BUSINESS IDENTITY PROFILE */}
           <div className="space-y-4">
-            <h2 className="font-display font-semibold text-marigold-dark uppercase tracking-wider text-xs">Section 1: Business Identity</h2>
+            <h2 className="font-display font-semibold text-indigo-500 uppercase tracking-wider text-xs">Section 1: Business Identity</h2>
             
             <input
               type="text"
@@ -246,14 +225,14 @@ function SellerOnboardingPageContent() {
               placeholder="Registered business name"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-marigold transition-colors"
+              className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
             />
             
             <div className="grid grid-cols-2 gap-3">
               <select
                 value={businessType}
                 onChange={(e) => setBusinessType(e.target.value)}
-                className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-marigold transition-colors text-ink/80 cursor-pointer"
+                className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors text-ink/80 cursor-pointer"
               >
                 <option value="Single Proprietorship">Single Proprietorship</option>
                 <option value="Partnership">Partnership</option>
@@ -266,7 +245,7 @@ function SellerOnboardingPageContent() {
                 placeholder="Contact number"
                 value={contactNumber}
                 onChange={(e) => setContactNumber(e.target.value)}
-                className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-marigold transition-colors"
+                className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
             
@@ -276,41 +255,38 @@ function SellerOnboardingPageContent() {
               value={pickupAddress}
               onChange={(e) => setPickupAddress(e.target.value)}
               rows={2}
-              className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-marigold transition-colors resize-none"
+              className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors resize-none"
             />
           </div>
 
-          {/* BLOCK B: VIRTUAL STOREFRONT ARCHITECTURE */}
           <div className="space-y-4 pt-4 border-t border-ink/5">
-            <h2 className="font-display font-semibold text-marigold-dark uppercase tracking-wider text-xs">Section 2: Storefront Deployment</h2>
+            <h2 className="font-display font-semibold text-indigo-500 uppercase tracking-wider text-xs">Section 2: Storefront Deployment</h2>
             
             <input
               type="text"
               required
-              placeholder="Store Name (e.g., Manipu Premium Goods)"
+              placeholder="Store Name (e.g., Wilkins Premium Goods)"
               value={storeName}
               onChange={(e) => handleStoreNameChange(e.target.value)}
-              className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-marigold transition-colors"
+              className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
             />
             
             <div className="space-y-1">
               <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Live URL Handle link</label>
-              {/* 🟢 FIXED VISUAL LINK INTERFACE MATRIX PREVIEW WITH DASHBOARD INCLUSION */}
-              <div className="relative rounded-xl shadow-xs flex items-center bg-paper border border-ink/15 focus-within:border-marigold transition-colors overflow-hidden">
-                <span className="pl-4 pr-1 font-mono text-xs text-ink/30 select-none">://manipu.com</span>
+              <div className="relative rounded-xl flex items-center bg-paper border border-ink/15 focus-within:border-indigo-500 transition-colors overflow-hidden">
+                <span className="pl-4 pr-1 font-mono text-xs text-ink/30 select-none">://://manipu.com</span>
                 <input
                   type="text"
                   required
                   readOnly
                   placeholder="auto-generated-slug"
                   value={storeSlug}
-                  className="w-full bg-transparent border-none py-3 pr-4 text-sm text-marigold-dark outline-none font-mono"
+                  className="w-full bg-transparent border-none py-3 pr-4 text-sm text-indigo-500 outline-none font-mono"
                 />
               </div>
             </div>
 
-            {/* Brand Logo Upload Node (Free Tier Option) */}
-            <div className="space-y-1.5">
+ <div className="space-y-1.5">
               <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Store Brand Logo</label>
               <div className="flex items-center gap-4 bg-paper border border-ink/15 rounded-xl p-3">
                 <div className="h-12 w-12 rounded-lg bg-ink/5 border border-ink/10 flex items-center justify-center overflow-hidden shrink-0">
@@ -330,7 +306,6 @@ function SellerOnboardingPageContent() {
             </div>
           </div>
           
-          {/* Action Submission Deployment Controller */}
           <button
             type="submit"
             disabled={loading}
@@ -344,23 +319,21 @@ function SellerOnboardingPageContent() {
             ) : (
               <span>Launch My Store Platform 🚀</span>
             )}
-          </button>
+          </button> {/* 🟢 FIXED: Idinagdag ang kulang na pansasara ng button tag */}
         </form>
       </div>
     </div>
   );
-}
+} // 1. Isinasara ang SellerOnboardingPageContent return block at function matrix
 
-// 🚀 CRITICAL SUSPENSE EXPORT COUPLING PATROL FOR NEXT.JS ROUTER STABILITY
-import { Suspense } from 'react';
-
+// 2. 🚀 CRITICAL SUSPENSE EXPORT FOR NEXT.JS ROUTER STABILITY
 export default function SellerOnboardingPage() {
   return (
     <Suspense 
       fallback={
         <div className="min-h-screen bg-paper flex items-center justify-center text-ink font-body">
           <div className="text-center space-y-2">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-marigold border-t-transparent mx-auto"></div>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent mx-auto"></div>
             <p className="text-xs font-mono text-ink/40">Loading secure onboarding layout map...</p>
           </div>
         </div>

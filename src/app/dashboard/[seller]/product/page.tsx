@@ -1,33 +1,45 @@
- // src/app/dashboard/[seller]/products/page.tsx
-'use client';
+ 'use client';
 
+// LAHAT NG IMPORTS MO (Binuo kasama ang bagong hooks para sa tabs routing window)
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
-import { useRouter } from 'next/navigation'; 
-import { Search, Plus, Package, Edit2, Trash2, RefreshCw } from 'lucide-react';
+import { useRouter, useParams, usePathname } from 'next/navigation'; 
+import { Search, Plus, Package, Edit2, Trash2, RefreshCw, Folder, Layers, ClipboardList } from 'lucide-react';
 import { Product } from '../../../../types/product';
 
 export default function SellerProductsPage() {
   const router = useRouter(); 
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // Dynamic parameters allocation node (e.g., manipu)
+  const seller = params?.seller as string; 
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 🚀 HIGHWAY GALAMAY MENU DEFINITIONS: Ang apat na tabs na makikita sa pinakataas ng screen
+  const PRODUCT_GALAMAY_TABS = [
+    { href: `/dashboard/${seller}/product`, label: 'All Products', icon: Package },
+    { href: `/dashboard/${seller}/product/new`, label: 'Add New Product', icon: Plus },
+    { href: `/dashboard/${seller}/product/inventory`, label: 'Bulk Inventory', icon: ClipboardList },
+    { href: `/dashboard/${seller}/product/categories`, label: 'Categories', icon: Layers },
+  ];
+
+  // 1. DATA STREAM INTEGRATION: Kumuha ng mga produkto na nakahiwalay kada tenant store ID
   useEffect(() => {
     const fetchSellerProducts = async () => {
       try {
         setLoading(true);
         setErrorMessage('');
 
-        // INAYOS: Ginamit ang getSession framework para sa matatag na sync data matching pipeline
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
         if (sessionError || !session) {
           throw new Error('Walang aktibong session. Mangyaring mag-log in muli.');
         }
 
-        // INAYOS: Itinama mula user_id patungong owner_id upang tumugma sa database tables natin
         const { data: storeData, error: storeError } = await supabase
           .from('stores')
           .select('id')
@@ -38,13 +50,10 @@ export default function SellerProductsPage() {
           throw new Error('Hindi nahanap ang profile record ng iyong tindahan.');
         }
 
-        const activeStoreId = storeData.id;
-
-        // Kunin ang mga produkto gamit ang dynamic active store ID
         const { data, error } = await supabase
           .from('products')
           .select('id, store_id, name, price, stock, created_at')
-          .eq('store_id', activeStoreId)
+          .eq('store_id', storeData.id)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -57,20 +66,26 @@ export default function SellerProductsPage() {
       }
     };
 
-    fetchSellerProducts();
-  }, []);
+    if (seller) fetchSellerProducts();
+  }, [seller]);
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm('Sigurado ka bang gusto mong burahin ang produktong ito sa iyong catalog?')) {
-      try {
-        const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) throw error;
-        setProducts(prev => prev.filter(item => item.id !== id));
-      } catch (err: any) {
-        alert(`❌ Error sa pagbura: ${err.message}`);
-      }
+  // 2. DATA MUTATION NODE: Ligtas na pagbura gamit ang double-lock tenant reference pattern
+  const handleDeleteProduct = async (id: string, storeId: string) => {
+    if (!confirm('Sigurado ka bang gusto mong burahin ang produktong ito sa iyong catalog?')) return;
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id)
+        .eq('store_id', storeId); // Double lock framework protection
+
+      if (error) throw error;
+      setProducts(prev => prev.filter(item => item.id !== id));
+    } catch (err: any) {
+      alert(`❌ Error sa pagbura: ${err.message}`);
     }
   };
+
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       
@@ -78,17 +93,30 @@ export default function SellerProductsPage() {
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-ink/5 pb-5">
         <div>
           <h1 className="font-display font-bold text-2xl md:text-3xl tracking-tight text-ink">Product Catalog Management</h1>
-          <p className="text-sm text-ink/50 mt-1">Add, update, or remove inventory products from your active multi-tenant channel storefront.</p>
+          <p className="text-sm text-ink/50 mt-1">Manage and scale your active multi-tenant channel storefront storefront catalog.</p>
         </div>
-        
-        <button 
-          onClick={() => router.push('/seller/products/new')} 
-          className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-4 py-2.5 rounded-xl text-xs shadow-sm hover:bg-ink/90 active:scale-95 transition cursor-pointer"
-        >
-          <Plus size={14} />
-          <span>Add New Product</span>
-        </button>
       </header>
+
+      {/* 🧭 INTERACTIVE GALAMAY HUB: Horizontal Navigation Tabs Bar Component */}
+      <nav className="flex flex-wrap gap-2 border-b border-ink/5 pb-2">
+        {PRODUCT_GALAMAY_TABS.map((tab) => {
+          const isActive = pathname === tab.href; // Tingnan kung ito ang kasalukuyang nakabukas na tab
+          return (
+            <button
+              key={tab.href}
+              onClick={() => router.push(tab.href)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-ink text-paper shadow-sm font-bold scale-[1.02]' // Active State Styling
+                  : 'bg-paper border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5' // Inactive State Styling
+              }`}
+            >
+              <tab.icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {/* ERROR HANDLER LOG DISPLAY */}
       {errorMessage && (
@@ -124,7 +152,7 @@ export default function SellerProductsPage() {
           </div>
           <p className="font-semibold text-ink">Walang aktibong produkto na nahanap</p>
           <p className="max-w-xs mx-auto leading-relaxed text-xs text-ink/50">
-            I-click ang "Add New Product" para maglagay ng unang produkto sa database na makikita sa iyong public storefront directory.
+            I-click ang "Add New Product" tab sa itaas para maglagay ng unang produkto sa database na makikita sa iyong storefront directory.
           </p>
         </div>
       ) : (
@@ -161,15 +189,16 @@ export default function SellerProductsPage() {
                       </td>
                       <td className="py-4 px-6 text-right">
                         <div className="flex gap-1.5 justify-end">
+                          {/* FIXED ROUTING INTERCONNECTION: Aligned and locked inside dynamic workspace directory */}
                           <button 
-                            onClick={() => router.push(`/seller/products/${product.id}`)}
+                            onClick={() => router.push(`/dashboard/${seller}/product/${product.id}`)}
                             className="p-2 border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5 rounded-xl transition cursor-pointer"
                             title="I-edit ang Produkto"
                           >
                             <Edit2 size={13} className="pointer-events-none" />
                           </button>
                           <button 
-                            onClick={() => handleDeleteProduct(product.id)}
+                            onClick={() => handleDeleteProduct(product.id, product.store_id)}
                             className="p-2 border border-ink/10 text-coral hover:bg-rose-50/50 rounded-xl transition cursor-pointer"
                             title="Burahin ang Produkto"
                           >

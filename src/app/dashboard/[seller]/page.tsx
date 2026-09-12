@@ -4,7 +4,7 @@
 import { useState, useEffect, use } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, ShoppingBag, AlertTriangle, Ticket } from 'lucide-react';
+import { TrendingUp, ShoppingBag, AlertTriangle, Ticket, Tag } from 'lucide-react';
 
 // 🚀 CRITICAL INJECTION ENGINE DIRECTIVE: Pinipilit ang Next.js na basahin ito bilang dynamic rendering layout
 // upang tuluyang maalis ang hard reload 404 block configurations.
@@ -149,44 +149,55 @@ export default function SellerDashboard({ params }: PageProps) {
         )}
       </header>
 
-      {/* DYNAMIC REAL-TIME SCORECARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-ink/40 uppercase tracking-wide">Total revenue</span>
-            <TrendingUp size={16} className="text-teal" strokeWidth={1.75} />
+      {/* REVENUE HERO — the number that actually matters gets the weight, not four equal boxes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 bg-ink text-paper rounded-2xl p-8 flex flex-col justify-between">
+          <div className="flex items-start justify-between">
+            <span className="text-sm text-paper/50">Total revenue</span>
+            <TrendingUp size={18} className="text-teal" strokeWidth={1.75} />
           </div>
-          <div className="font-display font-bold text-2xl text-ink">
+          <div className="font-display font-bold text-4xl md:text-5xl tracking-tight mt-4">
             ₱{totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-ink/40 mt-1">Gross sales this month</p>
+          <div className="flex items-center gap-2 mt-6 pt-5 border-t border-dashed border-paper/15">
+            <p className="text-sm text-paper/40">Gross sales this month, from completed orders</p>
+          </div>
         </div>
 
-        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-ink/40 uppercase tracking-wide">Orders received</span>
-            <ShoppingBag size={16} className="text-ink/40" strokeWidth={1.75} />
+        {/* A single stitched strip instead of three more identical cards */}
+        <div className="bg-white border border-ink/10 rounded-2xl divide-y divide-dashed divide-ink/10 flex flex-col">
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+              <ShoppingBag size={16} className="text-ink/40" strokeWidth={1.75} />
+              <div>
+                <p className="text-sm text-ink/50">Orders received</p>
+                <p className="text-[11px] text-ink/35">Awaiting fulfillment or shipping</p>
+              </div>
+            </div>
+            <span className="font-display font-bold text-xl text-ink">{ordersCount}</span>
           </div>
-          <div className="font-display font-bold text-2xl text-ink">{ordersCount}</div>
-          <p className="text-xs text-ink/40 mt-1">Awaiting fulfillment or shipping</p>
-        </div>
 
-        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-ink/40 uppercase tracking-wide">Low stock</span>
-            <AlertTriangle size={16} className="text-marigold-dark" strokeWidth={1.75} />
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+              <AlertTriangle size={16} className="text-marigold-dark" strokeWidth={1.75} />
+              <div>
+                <p className="text-sm text-ink/50">Low stock</p>
+                <p className="text-[11px] text-ink/35">Products at 5 units or fewer</p>
+              </div>
+            </div>
+            <span className="font-display font-bold text-xl text-marigold-dark">{lowStockCount}</span>
           </div>
-          <div className="font-display font-bold text-2xl text-marigold-dark">{lowStockCount}</div>
-          <p className="text-xs text-ink/40 mt-1">Products running low</p>
-        </div>
 
-        <div className="bg-white border border-ink/10 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-ink/40 uppercase tracking-wide">Active campaigns</span>
-            <Ticket size={16} className="text-teal" strokeWidth={1.75} />
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+              <Ticket size={16} className="text-teal" strokeWidth={1.75} />
+              <div>
+                <p className="text-sm text-ink/50">Active campaigns</p>
+                <p className="text-[11px] text-ink/35">Live vouchers and discounts</p>
+              </div>
+            </div>
+            <span className="font-display font-bold text-xl text-ink">{activeVouchersCount}</span>
           </div>
-          <div className="font-display font-bold text-2xl text-ink">{activeVouchersCount}</div>
-          <p className="text-xs text-ink/40 mt-1">Live vouchers and discounts</p>
         </div>
       </div>
 
@@ -194,8 +205,13 @@ export default function SellerDashboard({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white border border-ink/10 rounded-2xl p-6">
           <h3 className="text-sm font-semibold text-ink/60 mb-4">Recent activity</h3>
-          <div className="border border-dashed border-ink/15 rounded-xl p-10 text-center text-sm text-ink/40">
-            No new orders yet. Share your store link to start getting sales.
+          <div className="border border-dashed border-ink/15 rounded-xl p-10 flex flex-col items-center text-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-ink/5 flex items-center justify-center">
+              <Tag size={16} className="text-ink/30" strokeWidth={1.75} />
+            </div>
+            <p className="text-sm text-ink/40 max-w-xs">
+              No new orders yet. Share your store link to start getting sales.
+            </p>
           </div>
         </div>
 
@@ -205,8 +221,14 @@ export default function SellerDashboard({ params }: PageProps) {
             <p className="text-sm text-ink/50 leading-relaxed">
               Update your logo, brand color, and layout to keep your storefront looking fresh.
             </p>
+            <div className="flex items-center gap-2 mt-4">
+              <span className="w-4 h-4 rounded-full bg-paper border border-ink/15" />
+              <span className="w-4 h-4 rounded-full bg-ink" />
+              <span className="w-4 h-4 rounded-full bg-teal" />
+              <span className="w-4 h-4 rounded-full bg-marigold-dark" />
+            </div>
           </div>
-          
+
           <button 
             onClick={() => {
               if (storeSlug) {

@@ -1,5 +1,4 @@
- // middleware.js [PART 1 OF 3]
-import { createServerClient } from '@supabase/ssr';
+ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
@@ -25,10 +24,18 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
+  // Runtime Safety Guards para sa mga Supabase Keys
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return response; 
+  }
+
   // 3. ASYNC COOKIE SYNC ENGINE (SUPABASE SSR MECHANISM)
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -49,16 +56,15 @@ export async function middleware(request) {
     }
   );
 
-  // 🚀 DIRECT LIVE AUTH CONFIRMATION ( getUser() Call Is Safe and Stable Verified )
+  // 🚀 DIRECT LIVE AUTH CONFIRMATION
   const { data: { user } } = await supabase.auth.getUser();
 
   // 4. API BACKGROUND CONTROLLERS BYPASS
   if (pathname.startsWith('/api')) {
     return response;
   }
-// middleware.js [PART 2 OF 3]
 
-  // 5. EXTRACT SUBDOMAIN O DYNAMIC SLUG IDENTIFIERS (Binuhat pataas para sa scope integration)
+  // 5. EXTRACT SUBDOMAIN O DYNAMIC SLUG IDENTIFIERS
   let currentSlug = '';
   if (hostname.includes(mainDomain) && hostname !== mainDomain) {
     currentSlug = hostname.replace(`.${mainDomain}`, '');
@@ -90,18 +96,25 @@ export async function middleware(request) {
   const firstSegment = pathSegments[0] || ''; 
   const secondSegment = pathSegments[1] || '';
 
+  // 🚀 FIXED & SELYADONG POSISYON NI isAuthOrOnboarding
+  const isAuthOrOnboarding =
+    pathname === '/onboarding' ||
+    pathname === '/login' ||
+    pathname === '/sign-up';
+
   // 🚀 ABSOLUTE HARD LOCK INTERCEPTOR RULES FOR SYSTEM SAFETY:
   if (user && hasCheckedStore) {
-    
-    // Kung ang authenticated user ay WALANG tindahan sa database, at hindi niya binibisita ang /onboarding,
-    // harangin siya gamit ang isang Absolute URL structure at hinding-hindi siya pababayaang makalabas patungong 404 block.
-    if (!userStoreSlug && pathname !== '/onboarding') {
+    if (!userStoreSlug && !isAuthOrOnboarding) {
       const absoluteOnboardingUrl = new URL('/onboarding', request.url);
-      absoluteOnboardingUrl.searchParams.set('name', encodeURIComponent(user.user_metadata?.full_name || user.user_metadata?.name || ''));
+      if (user.user_metadata) {
+        absoluteOnboardingUrl.searchParams.set(
+          'name', 
+          encodeURIComponent(user.user_metadata.full_name || user.user_metadata.name || '')
+        );
+      }
       return NextResponse.redirect(absoluteOnboardingUrl);
     }
 
-    // Kung may registered store slug na siya sa database pero tinatangkang pumasok o bumalik sa /onboarding
     if (userStoreSlug && pathname === '/onboarding') {
       const absoluteDashboardUrl = new URL(`/dashboard/${userStoreSlug}`, request.url);
       return NextResponse.redirect(absoluteDashboardUrl);
@@ -113,11 +126,10 @@ export async function middleware(request) {
     const absoluteLoginUrl = new URL('/login', request.url);
     return NextResponse.redirect(absoluteLoginUrl);
   }
-// middleware.js [PART 3 OF 3]
 
-  // 9. SUBDOMAIN REWRITE ENGINE DYNAMICS
+  // 9. SUBDOMAIN REWRITE ENGINE DYNAMICS (FIXED: Itinama sa iyong actual 'store' directory template structure)
   if (currentSlug && !['www', 'admin', 'seller'].includes(currentSlug)) {
-    url.pathname = `/${currentSlug}${pathname}`;
+    url.pathname = `/store/${currentSlug}${pathname}`; // Inilapat ang /store prefix node para sa iyong sub-domains
     return NextResponse.rewrite(url, {
       request: {
         headers: response.headers,
@@ -125,8 +137,7 @@ export async function middleware(request) {
     });
   }
 
-  // 10. MULTI-TENANT CROSS-ACCESS PATROL (RE-ALIGNED TO NEW DASHBOARD TREE)
-  // Kung ang tenant ay nasa loob ng /dashboard/[seller] area, sisiguraduhin natin na hinding-hindi niya masisilip ang ibang handle slug.
+  // 10. MULTI-TENANT CROSS-ACCESS PATROL
   if (user && userStoreSlug && firstSegment === 'dashboard' && secondSegment) {
     if (secondSegment !== userStoreSlug) {
       const selfDashboardUrl = new URL(`/dashboard/${userStoreSlug}`, request.url);
@@ -140,13 +151,6 @@ export async function middleware(request) {
 // 11. MATCHER CONFIGURATIONS CONFIG SCHEMA
 export const config = {
   matcher: [
-    /*
-     * Match ang lahat ng request paths maliban sa mga sumusunod:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - Lahat ng media files na may extensions (svg, png, jpg, jpeg, gif, webp, mp4, etc.)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)',
   ],
 };

@@ -1,5 +1,4 @@
- // src/app/api/auth/callback/route.ts [PART 1 OF 2]
-import { createServerClient } from '@supabase/ssr';
+ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -35,10 +34,10 @@ export async function GET(request: Request) {
 
     // 3. EXCHANGE EXPLICIT AUTH CODE FOR AN ACTIVE SECURE SESSION
     const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-// src/app/api/auth/callback/route.ts [PART 2 OF 2]
 
     if (!sessionError && sessionData?.user) {
-      const userId = sessionData.user.id;
+      const user = sessionData.user;
+      const userId = user.id;
 
       /* 🔍 DATABASE VALIDATION CHECK NODE
        * Hahanapin natin ang katapat na registered tenant metadata sheet 
@@ -50,9 +49,14 @@ export async function GET(request: Request) {
         .eq('owner_id', userId)
         .maybeSingle();
 
-      // Kung walang lehitimong store record na nahanap ang server checkpoint loop, ibalik sa onboarding
+      // 🟢 FIXED: Kung walang store record, ipasa ang Google full_name papuntang onboarding via parameters
       if (!store || storeError) {
-        return NextResponse.redirect(`${origin}/onboarding`);
+        const onboardingUrl = new URL('/onboarding', origin);
+        const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+        if (fullName) {
+          onboardingUrl.searchParams.set('name', encodeURIComponent(fullName));
+        }
+        return NextResponse.redirect(onboardingUrl.toString());
       }
 
       /* 🚀 RE-ALIGNED MONETIZATION REDIRECTION LINK TARGET
@@ -61,7 +65,7 @@ export async function GET(request: Request) {
        */
       return NextResponse.redirect(`${origin}/dashboard/${store.slug}`);
     }
-  } // 🟢 ISINARA ANG 'if (code)' BLOCK NANG TAMA
+  } // Isinara ang 'if (code)' block nang tama
 
   // Global fallback redirection kung walang code parameter o nag-fail ang structural code validations
   return NextResponse.redirect(`${origin}/login?error=oauth_handshake_failed`);

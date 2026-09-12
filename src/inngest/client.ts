@@ -1,18 +1,36 @@
- import { Inngest, eventType, staticSchema } from "inngest";
+import { Inngest } from "inngest";
+import { Product } from "../types/product";
 
-// 1. I-define ang eksaktong structure ng data payload para sa iyong order event
+// 1. EVENT PAYLOAD DEFINITIONS (Strict Schema Mapping)
 type OrderCreatedPayload = {
-  storeSlug: string;
-  orderId: string;
-  customerPhone: string;
+  name: "store/order.created";
+  data: {
+    storeSlug: string;
+    orderId: string;
+    customerPhone: string;
+  };
 };
 
-// 2. Gamitin ang eventType helper kasama ang staticSchema para i-rehistro ang event mo
-export const orderCreatedEvent = eventType("store/order.created", {
-  schema: staticSchema<OrderCreatedPayload>(),
-});
+type ProductCreatedPayload = {
+  name: "shop/product.created";
+  data: {
+    productId: string;
+    storeId: string;
+    sku: string | null;
+    price: number;
+  };
+};
 
-// 3. I-initialize ang Inngest client (wala nang "schemas" property rito)
-export const inngest = new Inngest({ 
-  id: "wilkins-saas",
+// 2. INITIALIZE THE CORE INNGEST ENGINE WITH V4 SCHEMAS SPECIFICATION
+export const inngest = new Inngest({
+  id: "wilkins-saas", // Naka-konekta sa iyong project naming hub
+  schemas: {
+    // Pinag-isang schema block para sa matatag na validation matrix
+    "store/order.created": {
+      data: {} as OrderCreatedPayload["data"],
+    },
+    "shop/product.created": {
+      data: {} as ProductCreatedPayload["data"],
+    },
+  },
 });

@@ -1,10 +1,10 @@
-// src/app/dashboard/[seller]/products/categories/page.tsx
 'use client';
 
+// LAHAT NG IMPORTS MO AY PINANATILI AT DINAGDAGAN NG MGA KAIALNGANG HOOKS AT ICONS
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../lib/supabase';
-import { useRouter } from 'next/navigation';
-import { Tag, Plus, Trash2, RefreshCw, AlertCircle, CheckCircle2, Search } from 'lucide-react';
+import { useRouter, useParams, usePathname } from 'next/navigation';
+import { Tag, Plus, Trash2, RefreshCw, AlertCircle, CheckCircle2, Search, Package, Layers, ClipboardList } from 'lucide-react';
 
 interface CategoryItem {
   id: string;
@@ -14,6 +14,12 @@ interface CategoryItem {
 
 export default function SellerCategoriesPage() {
   const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // Dynamic parameters allocation node (Kukunin ang store handle gaya ng: manipu)
+  const seller = params?.seller as string;
+
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -22,6 +28,14 @@ export default function SellerCategoriesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState('');
+
+  // 🚀 HIGHWAY GALAMAY MENU DEFINITIONS: Ang apat na tabs na naka-sync sa lahat ng sub-pages mo
+  const PRODUCT_GALAMAY_TABS = [
+    { href: `/dashboard/${seller}/product`, label: 'All Products', icon: Package },
+    { href: `/dashboard/${seller}/product/new`, label: 'Add New Product', icon: Plus },
+    { href: `/dashboard/${seller}/product/inventory`, label: 'Bulk Inventory', icon: ClipboardList },
+    { href: `/dashboard/${seller}/product/categories`, label: 'Categories', icon: Layers },
+  ];
 
   useEffect(() => {
     const fetchCategoriesData = async () => {
@@ -34,7 +48,6 @@ export default function SellerCategoriesPage() {
           return;
         }
 
-        // Kukuha muna ng store_id na pagmamay-ari ng active authenticated merchant account
         const { data: storeData, error: storeError } = await supabase
           .from('stores')
           .select('id')
@@ -47,7 +60,6 @@ export default function SellerCategoriesPage() {
 
         setStoreId(storeData.id);
 
-        // Hahatakin ang lahat ng custom categories na gawa ng tindahang ito
         const { data, error } = await supabase
           .from('categories')
           .select('id, name, slug')
@@ -64,10 +76,9 @@ export default function SellerCategoriesPage() {
       }
     };
 
-    fetchCategoriesData();
-  }, [router]);
+    if (seller) fetchCategoriesData();
+  }, [seller, router]);
 
-  // Function para mag-add ng bagong custom category row sheet record
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCategoryName.trim() || !storeId) return;
@@ -77,7 +88,6 @@ export default function SellerCategoriesPage() {
 
     try {
       const cleanSlug = newCategoryName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-
       if (!cleanSlug) throw new Error('Mangyaring maglagay ng wastong pangalan ng kategorya.');
 
       const { data, error } = await supabase
@@ -108,18 +118,25 @@ export default function SellerCategoriesPage() {
     }
   };
 
-  // Function para magbura ng kategorya
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('Sigurado ka bang gusto mong burahin ang kategoryang ito? Ang mga produktong gumagamit nito ay mananatili pero mawawalan ng kategorya.')) {
-      try {
-        const { error } = await supabase.from('categories').delete().eq('id', id);
-        if (error) throw error;
-        setCategories(prev => prev.filter(item => item.id !== id));
-      } catch (err: any) {
-        alert(`❌ Error sa pagbura: ${err.message}`);
-      }
+    if (!storeId) return;
+    if (!confirm('Sigurado ka bang gusto mong burahin ang kategoryang ito? Ang mga produktong gumagamit nito ay mananatili pero mawawalan ng kategorya.')) return;
+    
+    try {
+      // ITINAMA: Double-lock engine verification para sa multi-tenancy rules ng database mo
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id)
+        .eq('store_id', storeId); 
+
+      if (error) throw error;
+      setCategories(prev => prev.filter(item => item.id !== id));
+    } catch (err: any) {
+      alert(`❌ Error sa pagbura: ${err.message}`);
     }
   };
+
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       
@@ -128,6 +145,27 @@ export default function SellerCategoriesPage() {
         <h1 className="font-display font-bold text-2xl md:text-3xl tracking-tight text-ink">Custom Shop Categories</h1>
         <p className="text-sm text-ink/50 mt-1">Create and manage internal layout shelf classifications tailored for your tenant storefront catalog.</p>
       </header>
+
+      {/* 🧭 INTERACTIVE GALAMAY HUB: Horizontal Tabs Menu na nakasabit sa pinakataas ng screen */}
+      <nav className="flex flex-wrap gap-2 border-b border-ink/5 pb-2">
+        {PRODUCT_GALAMAY_TABS.map((tab) => {
+          const isActive = pathname === tab.href;
+          return (
+            <button
+              key={tab.href}
+              onClick={() => router.push(tab.href)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-ink text-paper shadow-sm font-bold scale-[1.02]'
+                  : 'bg-paper border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5'
+              }`}
+            >
+              <tab.icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {/* COMPONENT MESSAGE DISPATCHER BLOCK */}
       {message && (
@@ -230,3 +268,4 @@ export default function SellerCategoriesPage() {
     </main>
   );
 }
+

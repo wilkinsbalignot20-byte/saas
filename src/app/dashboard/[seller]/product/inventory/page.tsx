@@ -1,43 +1,57 @@
- // src/app/dashboard/[seller]/products/inventory/page.tsx
-'use client';
+ 'use client';
 
+// LAHAT NG IMPORTS MO AY PINANATILI AT DINAGDAGAN NG TABS HOOKS AT ICONS
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../lib/supabase';
-import { useRouter } from 'next/navigation';
-import { Search, ShieldCheck, AlertCircle, RefreshCw, Save } from 'lucide-react';
+import { useRouter, useParams, usePathname } from 'next/navigation';
+import { Search, Plus, Package, Edit2, Trash2, RefreshCw, Save, AlertCircle, ShieldCheck, Layers, ClipboardList } from 'lucide-react';
 
-interface InventoryProduct {
+interface InventoryItem {
   id: string;
-  sku: string | null;
   name: string;
-  stock: number;
+  sku: string | null;
   price: number;
+  stock: number;
   status: 'In Stock' | 'Low Stock' | 'Out of Stock';
+  store_id: string;
 }
 
-export default function InventoryPage() {
+export default function SellerInventoryPage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [inventoryList, setInventoryList] = useState<InventoryProduct[]>([]);
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // Dynamic parameters allocation node (e.g., manipu)
+  const seller = params?.seller as string;
+
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
+  const [pendingUpdates, setPendingUpdates] = useState<Record<string, number>>({});
+  const [storeId, setStoreId] = useState<string | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState('');
 
-  // Magpapanatili ng talaan ng mga id at stock na binago ng user para sa bulk saving block
-  const [pendingUpdates, setPendingUpdates] = useState<Record<string, number>>({});
+  // 🚀 HIGHWAY GALAMAY MENU DEFINITIONS: Ang apat na tabs na naka-sync sa lahat ng sub-pages mo
+  const PRODUCT_GALAMAY_TABS = [
+    { href: `/dashboard/${seller}/product`, label: 'All Products', icon: Package },
+    { href: `/dashboard/${seller}/product/new`, label: 'Add New Product', icon: Plus },
+    { href: `/dashboard/${seller}/product/inventory`, label: 'Bulk Inventory', icon: ClipboardList },
+    { href: `/dashboard/${seller}/product/categories`, label: 'Categories', icon: Layers },
+  ];
 
+  // 1. DATA STREAM INTEGRATION: Kumuha ng mga produkto na nakahiwalay kada Tenant Store ID
   useEffect(() => {
     const fetchInventoryData = async () => {
       try {
         setLoading(true);
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
         if (sessionError || !session) {
           router.push('/login');
           return;
         }
 
-        // Kukuha muna ng store_id na pagmamay-ari ng active user profile
         const { data: storeData, error: storeError } = await supabase
           .from('stores')
           .select('id')
@@ -48,83 +62,72 @@ export default function InventoryPage() {
           throw new Error('Hindi nahanap ang profile record ng iyong tindahan.');
         }
 
-        // Kunin ang lahat ng produkto ng tindahan para sa stock audit control board sheets
+        setStoreId(storeData.id);
+
         const { data, error } = await supabase
           .from('products')
-          .select('id, sku, name, stock, price')
+          .select('id, name, sku, price, stock, store_id')
           .eq('store_id', storeData.id)
           .order('name', { ascending: true });
 
         if (error) throw error;
 
-        // I-map ang nakuha nating flat query rows kasama ang pag-calculate ng status badges
-        const mappedInventory = (data || []).map((item: any) => {
-          let currentStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' = 'In Stock';
-          if (item.stock === 0) currentStatus = 'Out of Stock';
-          else if (item.stock <= 5) currentStatus = 'Low Stock';
+        // I-map ang database data para lagyan ng dynamic computed Status Badge field
+        const formattedData = (data || []).map((item: any) => ({
+          ...item,
+          status: item.stock === 0 ? 'Out of Stock' : item.stock <= 5 ? 'Low Stock' : 'In Stock'
+        }));
 
-          return {
-            id: item.id,
-            sku: item.sku || 'NO SKU',
-            name: item.name,
-            stock: item.stock,
-            price: Number(item.price || 0),
-            status: currentStatus,
-          };
-        });
-
-        setInventoryList(mappedInventory);
+        setInventoryList(formattedData as InventoryItem[]);
       } catch (err: any) {
-        console.error('Error fetching inventory catalog matrix:', err.message);
+        console.error('Error load matrix tracking lines:', err.message);
         setMessage(`❌ Error: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInventoryData();
-  }, [router]);
+    if (seller) fetchInventoryData();
+  }, [seller, router]);
+  // Function para sa pansamantalang pagbabago ng stock sa client-side input view
+  const handleStockChange = (id: string, newStock: number) => {
+    const safeStock = Math.max(0, newStock);
+    
+    // I-update ang listahan sa screen para responsive ang text field
+    setInventoryList(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          stock: safeStock,
+          status: safeStock === 0 ? 'Out of Stock' : safeStock <= 5 ? 'Low Stock' : 'In Stock'
+        };
+      }
+      return item;
+    }));
 
-  // Function para sa inline stock numeric editor helper
-  const handleStockChange = (id: string, newValue: number) => {
-    const updatedStock = Math.max(0, newValue);
-
-    // 1. I-update ang visualization list state para ramdam agad ng user sa screen
-    setInventoryList(prev =>
-      prev.map(item => {
-        if (item.id === id) {
-          let updatedStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' = 'In Stock';
-          if (updatedStock === 0) updatedStatus = 'Out of Stock';
-          else if (updatedStock <= 5) updatedStatus = 'Low Stock';
-          
-          return { ...item, stock: updatedStock, status: updatedStatus };
-        }
-        return item;
-      })
-    );
-
-    // 2. Itala ang binagong stock sa pending queue array matrix module map layer
+    // Itago sa map tracking object ang mga binagong IDs para sa bulk save
     setPendingUpdates(prev => ({
       ...prev,
-      [id]: updatedStock
+      [id]: safeStock
     }));
   };
 
-  // Bulk Async Transaction Pipeline: Sabay-sabay na ise-save ang lahat ng binagong stock sa cloud database
+  // Function para isave nang sabay-sabay ang maramihang binagong stock cells sa Supabase
   const handleSaveChanges = async () => {
     const updateIds = Object.keys(pendingUpdates);
-    if (updateIds.length === 0) return;
+    if (updateIds.length === 0 || !storeId) return;
 
     setIsSaving(true);
     setMessage('');
 
     try {
-      // Isasakatuparan ang sunod-sunod na update requests gamit ang individual map tracking execution blocks
+      // SECURITY DOUBLE-LOCK ENFORCEMENT: Isinama ang store_id para i-isolate ang query mutation
       const updatePromises = updateIds.map(id => 
         supabase
           .from('products')
           .update({ stock: pendingUpdates[id] })
           .eq('id', id)
+          .eq('store_id', storeId) // Tenant context boundary lock node
       );
 
       const results = await Promise.all(updatePromises);
@@ -132,9 +135,13 @@ export default function InventoryPage() {
 
       if (hasError) throw new Error('May naganap na isyu sa pag-update ng ilang stock cells.');
 
-      setPendingUpdates({}); // I-clear ang listahan ng binago kapag matagumpay ang bulk loop operation
-      setMessage('🎉 Lahat ng pagbabago sa iyong mga stock ay matagumpay na naisave sa database!');
-      
+      // =========================================================
+      // 🤖 INNGEST AUTOMATION TRIGGER PLACEHOLDER
+      // Dito natin pwedeng i-trigger si Inngest mamaya para mag-sync!
+      // =========================================================
+
+      setPendingUpdates({}); 
+      setMessage('🎉 Lahat ng pagbabago sa iyong mga stock ay matagumpay na naisave!');
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
       setMessage(`❌ Error sa pag-save: ${err.message}`);
@@ -142,6 +149,7 @@ export default function InventoryPage() {
       setIsSaving(false);
     }
   };
+
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       
@@ -152,7 +160,6 @@ export default function InventoryPage() {
           <p className="text-sm text-ink/50 mt-1">Audit and update your product stock levels across your active catalog.</p>
         </div>
         
-        {/* INAYOS: Nilagyan ng active save function trigger at disabled capabilities habang nagpa-process ng data */}
         <button 
           onClick={handleSaveChanges}
           disabled={isSaving || Object.keys(pendingUpdates).length === 0}
@@ -163,6 +170,26 @@ export default function InventoryPage() {
         </button>
       </header>
 
+      {/* 🧭 INTERACTIVE GALAMAY HUB: Horizontal Navigation Tabs Bar Component */}
+      <nav className="flex flex-wrap gap-2 border-b border-ink/5 pb-2">
+        {PRODUCT_GALAMAY_TABS.map((tab) => {
+          const isActive = pathname === tab.href;
+          return (
+            <button
+              key={tab.href}
+              onClick={() => router.push(tab.href)}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-ink text-paper shadow-sm font-bold scale-[1.02]'
+                  : 'bg-paper border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5'
+              }`}
+            >
+              <tab.icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
       {/* COMPONENT MESSAGE DISPATCHER BLOCK */}
       {message && (
         <div className={`p-4 rounded-xl text-xs max-w-xl font-medium border flex items-center gap-2 ${
@@ -223,34 +250,20 @@ export default function InventoryPage() {
                   )
                   .map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                      
-                      {/* SKU */}
-                      <td className="py-4 px-6 font-mono font-medium text-ink/60">{item.sku}</td>
-                      
-                      {/* Product Name Title */}
-                      <td className="py-4 px-6">
-                        <p className="font-semibold text-ink text-sm">{item.name}</p>
-                      </td>
-                      
-                      {/* INAYOS: Status Badge with standardized Tailwind colors */}
+                      <td className="py-4 px-6 font-mono font-medium text-ink/60">{item.sku || 'WALANG SKU'}</td>
+                      <td className="py-4 px-6"><p className="font-semibold text-ink text-sm">{item.name}</p></td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-[10px] tracking-wide uppercase ${
                           item.status === 'In Stock' ? 'bg-emerald-50 text-emerald-700' :
-                          item.status === 'Low Stock' ? 'bg-amber-100 text-amber-800' :
-                          'bg-rose-50 text-rose-700'
+                          item.status === 'Low Stock' ? 'bg-amber-100 text-amber-800' : 'bg-rose-50 text-rose-700'
                         }`}>
-                          {item.status === 'In Stock' && <ShieldCheck size={11} />}
-                          {item.status !== 'In Stock' && <AlertCircle size={11} />}
+                          {item.status === 'In Stock' ? <ShieldCheck size={11} /> : <AlertCircle size={11} />}
                           {item.status}
                         </span>
                       </td>
-                      
-                      {/* Price Tag */}
                       <td className="py-4 px-6 text-right font-mono font-bold text-ink">
                         ₱{item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      
-                      {/* Quantitative Inline Stock Editor Input Node */}
                       <td className="py-4 px-6">
                         <div className="flex items-center justify-center border border-ink/10 rounded-xl bg-gray-50 overflow-hidden w-28 mx-auto">
                           <button
@@ -264,7 +277,7 @@ export default function InventoryPage() {
                             type="number"
                             value={item.stock}
                             onChange={(e) => handleStockChange(item.id, parseInt(e.target.value, 10) || 0)}
-                            className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-ink font-mono"
+                            className="w-full text-center bg-transparent text-xs font-semibold focus:outline-none text-ink font-mono"
                           />
                           <button
                             type="button"
@@ -275,7 +288,6 @@ export default function InventoryPage() {
                           </button>
                         </div>
                       </td>
-
                     </tr>
                   ))}
               </tbody>

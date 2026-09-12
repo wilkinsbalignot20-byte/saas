@@ -1,10 +1,11 @@
- import { inngest, orderCreatedEvent } from "./client";
-import { updateMerchantGoogleBusiness, sendCustomerSMS } from "../lib/automation"; // 👈 I-import dito!
+ import { inngest } from "./client"; // INAYOS: Tinanggal ang orderCreatedEvent import dahil hindi na ito kailangan sa v4
+import { updateMerchantGoogleBusiness, sendCustomerSMS } from "../lib/automation";
 
 export const tenantOrderAutomation = inngest.createFunction(
   { 
     id: "tenant-order-automation",
-    triggers: [orderCreatedEvent]
+    // UPGRADE: Ginamit ang opisyal na v4 trigger format gamit ang event string identifier key
+    triggers: [{ event: "store/order.created" }] 
   },
   async ({ event, step }) => {
     const { storeSlug, orderId, customerPhone } = event.data;
@@ -12,7 +13,7 @@ export const tenantOrderAutomation = inngest.createFunction(
     // Step 1: Tatawagin ang iyong lib helper para sa Google
     await step.run("update-google-business", async () => {
       const result = await updateMerchantGoogleBusiness(storeSlug, `Bagong order #${orderId} na pumasok!`);
-      if (!result.success) throw new Error(result.error); // Pag nag-error, mag-o-auto-retry si Inngest!
+      if (!result.success) throw new Error(result.error); 
       return result;
     });
 

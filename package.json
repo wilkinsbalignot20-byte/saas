@@ -1,4 +1,4 @@
- {
+{
   "name": "wilkins-project",
   "version": "1.0.0",
   "private": true,
@@ -13,6 +13,7 @@
     "@supabase/supabase-js": "^2.115.0",
     "axios": "^1.20.0",
     "clsx": "^2.1.1",
+    "inngest": "^4.20.0",
     "lucide-react": "^1.41.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
@@ -26,6 +27,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^10.0.5",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2"

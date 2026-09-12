@@ -132,7 +132,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       
       // Ibalik sa main catalog table list pagkatapos ng 1.5 segundo
       setTimeout(() => {
-        router.push('/seller/products');
+        router.push('/seller/product');
       }, 1500);
 
     } catch (err: any) {
