@@ -109,8 +109,9 @@ export default async function SellerLayout({
 
         {/* Profile footer and safety logout controller */}
         <div className="border-t border-dashed border-paper/15 pt-4 space-y-1">
+          {/* 🟢 GINADAGDAG: Tinamaang landas patungong settings main root folder (may "s" at walang sub-path) */}
           <Link
-            href={`/dashboard/${seller}/setting`}
+            href={`/dashboard/${seller}/settings`}
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-paper/60 hover:bg-paper/10 hover:text-paper transition-colors"
           >
             <Settings size={18} strokeWidth={1.75} />

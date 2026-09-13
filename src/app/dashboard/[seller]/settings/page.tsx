@@ -1,10 +1,9 @@
-// src/app/dashboard/[seller]/settings/page.tsx
-'use client';
+ 'use client';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { useRouter } from 'next/navigation';
-// INAYOS: Tinanggal sina Facebook at Instagram sa import list para iwas compilation block
+// SELYADO: Malinis na imports ng core visual anchors para sa settings configuration
 import { Store, Save, RefreshCw, AlertCircle, CheckCircle2, Globe, ShieldAlert } from 'lucide-react';
 
 export default function SellerSettingsPage() {
@@ -81,6 +80,7 @@ export default function SellerSettingsPage() {
       setLogoPreviewUrl(URL.createObjectURL(selectedFile));
     }
   };
+
   // 2. LIVE TRANSACTION ACTIONS: Magpapadala ng custom layout identity metrics update sa database rows
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +140,6 @@ export default function SellerSettingsPage() {
       setLogoPreviewUrl(null);
       setMessage('🎉 Storefront settings configuration successfully synchronized into database!');
       
-      // I-refresh pansamantala ang window para mag-propagate ang bagong store layout headers
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
       console.error('Error executing merchant identity save loop:', err.message);
@@ -160,7 +159,6 @@ export default function SellerSettingsPage() {
       </div>
     );
   }
-
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       

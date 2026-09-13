@@ -172,7 +172,6 @@ export default function SellerProductsPage() {
                   .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
-                      {/* 🟢 BINAGO/INAYOS: Pinaganda ang row layouts at isinama ang image thumbnail module overlay */}
                       <td className="py-4 px-6 font-semibold text-ink text-sm">
                         <div className="flex items-center gap-3">
                           {/* Image Box Matrix */}
@@ -183,7 +182,6 @@ export default function SellerProductsPage() {
                                 alt={product.name} 
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  // Fallback configuration if cached/signed link breaks down
                                   (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.88a2 2 0 0 0 2 0l8-4.66a2 2 0 0 0 1-1.73l-.03-9.45a2 2 0 0 0-1.03-1.74L13 2.2a2 2 0 0 0-2 0L3.03 6.3a2 2 0 0 0-1 1.73l.03 9.45a2 2 0 0 0 1.03 1.74z"/><path d="M12 22V12"/><path d="M12 12 4.05 7.5"/><path d="m12 12 7.95-4.5"/></svg>';
                                 }}
                               />
@@ -211,7 +209,20 @@ export default function SellerProductsPage() {
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right">
-                        <div className="flex gap-1.5 justify-end">
+                        <div className="flex gap-1.5 justify-end items-center">
+                          <button 
+                            onClick={() => {
+                              {/* 🟢 BINAGO/INAYOS: Ginawang absolute control (product as any) para lagpasan ang interface restrictions ng types/product.ts file niyo */}
+                              const anyProduct = product as any;
+                              const rawCategory = anyProduct.category || anyProduct.categories || 'general';
+                              const cleanCategorySlug = String(rawCategory).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+                              router.push(`/${cleanCategorySlug}/${product.id}/v1`);
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-2 border border-ink/10 text-teal hover:bg-teal/5 rounded-xl transition cursor-pointer text-[10px] font-bold uppercase tracking-tight"
+                            title="Tingnan ang Live Public Storefront"
+                          >
+                            👁️ View Live
+                          </button>
                           <button 
                             onClick={() => router.push(`/dashboard/${seller}/product/${product.id}`)}
                             className="p-2 border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5 rounded-xl transition cursor-pointer"
