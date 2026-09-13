@@ -1,21 +1,24 @@
-// src/app/dashboard/[seller]/products/[productId]/page.tsx
-'use client';
+ 'use client';
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '../../../../../lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Package, Save, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface EditProductPageProps {
-  params: Promise<{ productId: string }>;
+  params: Promise<{ seller: string; productId: string }>;
 }
 
 export default function EditProductPage({ params }: EditProductPageProps) {
   const router = useRouter();
+  const routeParams = useParams();
   
-  // Unwrap dynamic routing identification parameter keys
+  // Unwrap dynamic routing identification parameter keys safely
   const resolvedParams = use(params);
   const productId = resolvedParams.productId;
+  
+  // Dynamic seller parameter node (hal. manipu) mula sa router URL
+  const seller = resolvedParams.seller || (routeParams?.seller as string);
 
   // Form Field Evaluation States
   const [name, setName] = useState('');
@@ -30,9 +33,47 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
+  // 🟢 BAGONG DAGDAG: State trackers para sa dynamic database categories alignment
+  const [dbCategories, setDbCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+
+  // 🟢 BAGONG DAGDAG: Kusa nitong hahatakin ang mga totoong categories ni tenant tuwing bubuksan ang edit page
+  useEffect(() => {
+    const fetchActiveCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('owner_id', session.user.id)
+          .maybeSingle();
+
+        if (!storeData) return;
+
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name, slug')
+          .eq('store_id', storeData.id)
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        setDbCategories(data || []);
+      } catch (err: any) {
+        console.error('Error loading product edit categories loop:', err.message);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    if (seller) fetchActiveCategories();
+  }, [seller]);
 
   // 1. DATA STREAM INTEGRATION: Hahatakin ang kasalukuyang active details ng produkto mula sa database
   useEffect(() => {
@@ -57,7 +98,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         setStock(data.stock.toString());
         setSku(data.sku || '');
         setBrand(data.brand || '');
-        setCategory(data.category || 'General');
+        setCategory(data.category || 'General'); // Kung anong slug ang nakasave sa product, ito ang magiging default choice
         setDescription(data.description || '');
         setCurrentImageUrl(data.image_url);
 
@@ -69,34 +110,29 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       }
     };
 
-    fetchProductDetails();
+    if (productId) fetchProductDetails();
   }, [productId]);
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage('');
 
     try {
-      // 1. Validation check para sa mga numeric string metrics
       const productPrice = parseFloat(price);
       const productStock = parseInt(stock, 10);
 
-      if (isNaN(productPrice) || productPrice <= 0) {
-        throw new Error('Mangyaring maglagay ng wastong presyo.');
-      }
-      if (isNaN(productStock) || productStock < 0) {
-        throw new Error('Mangyaring maglagay ng wastong dami ng stock.');
-      }
+      if (isNaN(productPrice) || productPrice <= 0) throw new Error('Mangyaring maglagay ng wastong presyo.');
+      if (isNaN(productStock) || productStock < 0) throw new Error('Mangyaring maglagay ng wastong dami ng stock.');
 
       let finalImageUrl = currentImageUrl;
 
-      // 2. BAGONG UPDATE ENGNE: Opsyonal na pag-upload ng bagong larawan kung may pinili ang merchant
       if (newImageFile) {
         const fileExtension = newImageFile.name.split('.').pop();
         const fileName = `${productId}-${Date.now()}.${fileExtension}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('logos') // Gagamitin ang logos bucket pansamantala para sa products folder stream
+          .from('logos')
           .upload(`products/${fileName}`, newImageFile, {
             cacheControl: '3600',
             upsert: true,
@@ -111,14 +147,13 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         finalImageUrl = publicUrl;
       }
 
-      // 3. DATABASE UPDATE TRANSACTION: I-update ang row data sheet gamit ang pinakabagong entries
       const { error } = await supabase
         .from('products')
         .update({
           name: name.trim(),
           sku: sku.trim() || null,
           brand: brand.trim() || null,
-          category: category,
+          category: category, // Kakainin nito kung anong slug ang aktibong binago sa dynamic choice mapping
           description: description.trim() || null,
           price: productPrice,
           stock: productStock,
@@ -130,9 +165,8 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
       setMessage('🎉 Ang produkto ay matagumpay na na-update!');
       
-      // Ibalik sa main catalog table list pagkatapos ng 1.5 segundo
       setTimeout(() => {
-        router.push('/seller/product');
+        router.push(`/dashboard/${seller}/product`);
       }, 1500);
 
     } catch (err: any) {
@@ -142,6 +176,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       setIsSubmitting(false);
     }
   };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper">
@@ -159,7 +194,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       {/* 🧭 BREADCRUMB & HEADER SECTION */}
       <div className="space-y-1">
         <button 
-          onClick={() => router.push('/seller/products')}
+          onClick={() => router.push(`/dashboard/${seller}/product`)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/40 hover:text-ink transition-colors font-mono mb-2 cursor-pointer"
         >
           <ArrowLeft size={12} />
@@ -259,21 +294,28 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           {/* Category Dropdown */}
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Kategorya</label>
+            {/* 🟢 BINAGO/INAYOS: Ginawang dynamic drop-down loader mula sa active storage classifications */}
             <select
               value={category}
+              disabled={loadingCategories}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors cursor-pointer"
+              className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <option value="General">General</option>
-              <option value="Beverages">Beverages</option>
-              <option value="Food & Snacks">Food & Snacks</option>
-              <option value="Apparel & Fashion">Apparel & Fashion</option>
-              <option value="Electronics">Electronics</option>
+              {loadingCategories ? (
+                <option value="Loading">Loading categories...</option>
+              ) : dbCategories.length === 0 ? (
+                <option value="General">General</option>
+              ) : (
+                dbCategories.map((cat) => (
+                  <option key={cat.id} value={cat.slug}>
+                    {cat.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
         </div>
-
         {/* Product Image Uploader with Current Preview Section */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Larawan ng Produkto</label>

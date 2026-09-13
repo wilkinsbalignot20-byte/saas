@@ -1,7 +1,7 @@
 'use client';
 
 // LAHAT NG IMPORTS MO (Binuo kasama ang bagong tracking hooks at dynamic layout icons)
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../lib/supabase';
 import { useRouter, useParams, usePathname } from 'next/navigation';
 import { Search, Plus, Package, RefreshCw, Save, AlertCircle, CheckCircle2, Layers, ClipboardList, ArrowLeft } from 'lucide-react';
@@ -20,9 +20,13 @@ export default function NewProductPage() {
   const [stock, setStock] = useState('');
   const [sku, setSku] = useState('');
   const [brand, setBrand] = useState('');
-  const [category, setCategory] = useState('General');
+  const [category, setCategory] = useState('General'); // ◄ Default option setup
   const [description, setDescription] = useState('');
   const [productImageFile, setProductImageFile] = useState<File | null>(null); // ◄ PICTURE STATE
+
+  // 🟢 BAGONG DAGDAG: State framework para saluhin ang mga dynamic custom classifications mula sa DB
+  const [dbCategories, setDbCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -34,6 +38,45 @@ export default function NewProductPage() {
     { href: `/dashboard/${seller}/product/inventory`, label: 'Bulk Inventory', icon: ClipboardList },
     { href: `/dashboard/${seller}/product/categories`, label: 'Categories', icon: Layers },
   ];
+
+  // 🟢 BAGONG DAGDAG: Awtomatikong hahatakin ang mga custom entries (tulad ng Best Seller) ni tenant
+  useEffect(() => {
+    const fetchActiveCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('id')
+          .eq('owner_id', session.user.id)
+          .maybeSingle();
+
+        if (!storeData) return;
+
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name, slug')
+          .eq('store_id', storeData.id)
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        setDbCategories(data || []);
+        
+        // Kung may nahanap na custom categories ang merchant, itakda ang slug ng una bilang pre-selected framework choice
+        if (data && data.length > 0) {
+          setCategory(data[0].slug); // Gagamitin natin ang slug para selyado ang URL link management sa labas
+        }
+      } catch (err: any) {
+        console.error('Error loading product creation categories loop:', err.message);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    if (seller) fetchActiveCategories();
+  }, [seller]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,11 +136,11 @@ export default function NewProductPage() {
             name: name.trim(),
             sku: sku.trim() || null,
             brand: brand.trim() || null,
-            category: category,
+            category: category, // ◄ Kakainin nito kung anong slug ang aktibong napili sa automatic dropdown
             description: description.trim() || null,
             price: productPrice,
             stock: productStock,
-            image_url: uploadedImageUrl, // ◄ NAISALPAk NA ANG LINK DITO SA DB
+            image_url: uploadedImageUrl,
           },
         ])
         .select()
@@ -249,21 +292,30 @@ export default function NewProductPage() {
 
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Kategorya</label>
+            {/* 🟢 BINAGO/INAYOS: Ginawang dynamic drop-down loader block mula sa ininput ni tenant */}
             <select
               value={category}
+              disabled={loadingCategories}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors cursor-pointer font-medium"
+              className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors cursor-pointer font-medium disabled:opacity-50"
             >
-              <option value="General">General</option>
-              <option value="Beverages">Beverages</option>
-              <option value="Food & Snacks">Food & Snacks</option>
-              <option value="Apparel & Fashion">Apparel & Fashion</option>
-              <option value="Electronics">Electronics</option>
+              {loadingCategories ? (
+                <option value="Loading">Loading categories...</option>
+              ) : dbCategories.length === 0 ? (
+                // System default option framework kung blangko ang categories sheet table ng tindahan
+                <option value="General">General</option>
+              ) : (
+                // Loop framework sa mga nailigtas na inputs ni seller (e.g., Best Seller, Drinks)
+                dbCategories.map((cat) => (
+                  <option key={cat.id} value={cat.slug}>
+                    {cat.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
-
-        {/* 📸 NEW: INTERACTIVE PRODUCT IMAGE UPLOADER COMPONENT LAYER */}
+        {/* 📸 INTERACTIVE PRODUCT IMAGE UPLOADER COMPONENT LAYER */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Larawan ng Produkto (Opsyonal)</label>
           <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 border border-ink/10 rounded-xl p-4">

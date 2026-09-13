@@ -1,6 +1,6 @@
-'use client';
+ 'use client';
 
-// LAHAT NG IMPORTS MO AY PINANATILI AT DINAGDAGAN NG MGA KAIALNGANG HOOKS AT ICONS
+// LAHAT NG IMPORTS MO AY PINANATILI AT DINAGDAGAN NG MGA KAILANGANG HOOKS AT ICONS
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../lib/supabase';
 import { useRouter, useParams, usePathname } from 'next/navigation';
@@ -124,7 +124,7 @@ export default function SellerCategoriesPage() {
     
     try {
       // ITINAMA: Double-lock engine verification para sa multi-tenancy rules ng database mo
-      const { error } = await supabase
+      const { error = null } = await supabase
         .from('categories')
         .delete()
         .eq('id', id)
@@ -198,7 +198,7 @@ export default function SellerCategoriesPage() {
                 placeholder="Halimbawa: Best Sellers, Sale" 
                 value={newCategoryName} 
                 onChange={(e) => setNewCategoryName(e.target.value)} 
-                className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors" 
+                className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors font-medium" 
               />
             </div>
 
@@ -237,14 +237,14 @@ export default function SellerCategoriesPage() {
           ) : categories.length === 0 ? (
             <div className="bg-white border border-ink/10 rounded-2xl p-10 text-center text-xs text-ink/40 shadow-sm space-y-1">
               <p className="font-semibold text-ink">Walang custom categories</p>
-              <p className="text-ink/50">Gumamit ng panel sa kaliwa para gumawa ng unang classifications matrix.</p>
+              <p className="text-ink/50">Gumamit ng panel sa kaliwa para gumawa ng ilang classifications matrix.</p>
             </div>
           ) : (
             <div className="bg-white border border-ink/10 rounded-2xl overflow-hidden shadow-sm divide-y divide-ink/5">
               {categories
                 .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map((item) => (
-                  <div key={item.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                  <div key={item.id} className="p-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors text-xs">
                     <div>
                       <h4 className="text-xs font-bold text-ink">{item.name}</h4>
                       <p className="text-[10px] font-mono text-ink/40 mt-0.5">Slug Handle: /{item.slug}</p>
@@ -268,4 +268,3 @@ export default function SellerCategoriesPage() {
     </main>
   );
 }
-

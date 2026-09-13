@@ -52,7 +52,8 @@ export default function SellerProductsPage() {
 
         const { data, error } = await supabase
           .from('products')
-          .select('id, store_id, name, price, stock, created_at')
+          // 🟢 BINAGO/INAYOS: Idinagdag ang image_url sa select engine para hindi ito maging undefined sa rendering
+          .select('id, store_id, name, price, stock, image_url, created_at')
           .eq('store_id', storeData.id)
           .order('created_at', { ascending: false });
 
@@ -138,7 +139,6 @@ export default function SellerProductsPage() {
           />
         </div>
       </div>
-
       {/* 📊 INVENTORY ITEM DATA TABLE COMPONENT */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-3">
@@ -172,8 +172,31 @@ export default function SellerProductsPage() {
                   .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                      {/* 🟢 BINAGO/INAYOS: Pinaganda ang row layouts at isinama ang image thumbnail module overlay */}
                       <td className="py-4 px-6 font-semibold text-ink text-sm">
-                        {product.name}
+                        <div className="flex items-center gap-3">
+                          {/* Image Box Matrix */}
+                          <div className="w-10 h-10 rounded-xl bg-gray-50 border border-ink/5 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {product.image_url ? (
+                              <img 
+                                src={product.image_url} 
+                                alt={product.name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Fallback configuration if cached/signed link breaks down
+                                  (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.88a2 2 0 0 0 2 0l8-4.66a2 2 0 0 0 1-1.73l-.03-9.45a2 2 0 0 0-1.03-1.74L13 2.2a2 2 0 0 0-2 0L3.03 6.3a2 2 0 0 0-1 1.73l.03 9.45a2 2 0 0 0 1.03 1.74z"/><path d="M12 22V12"/><path d="M12 12 4.05 7.5"/><path d="m12 12 7.95-4.5"/></svg>';
+                                }}
+                              />
+                            ) : (
+                              <Package size={16} className="text-ink/20" />
+                            )}
+                          </div>
+                          {/* Title Metadata Block */}
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-ink text-xs md:text-sm leading-tight">{product.name}</span>
+                            <span className="text-[10px] text-ink/40 font-mono tracking-tight mt-0.5 uppercase">ID: {product.id.slice(0, 8)}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-right font-mono font-bold text-ink">
                         ₱{Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -189,7 +212,6 @@ export default function SellerProductsPage() {
                       </td>
                       <td className="py-4 px-6 text-right">
                         <div className="flex gap-1.5 justify-end">
-                          {/* FIXED ROUTING INTERCONNECTION: Aligned and locked inside dynamic workspace directory */}
                           <button 
                             onClick={() => router.push(`/dashboard/${seller}/product/${product.id}`)}
                             className="p-2 border border-ink/10 text-ink/60 hover:text-ink hover:bg-ink/5 rounded-xl transition cursor-pointer"

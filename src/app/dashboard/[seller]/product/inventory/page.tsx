@@ -6,6 +6,7 @@ import { supabase } from '../../../../../lib/supabase';
 import { useRouter, useParams, usePathname } from 'next/navigation';
 import { Search, Plus, Package, Edit2, Trash2, RefreshCw, Save, AlertCircle, ShieldCheck, Layers, ClipboardList } from 'lucide-react';
 
+// 🟢 BINAGO/INAYOS: Idinagdag ang image_url sa local contract interface ng spreadsheet items
 interface InventoryItem {
   id: string;
   name: string;
@@ -14,6 +15,7 @@ interface InventoryItem {
   stock: number;
   status: 'In Stock' | 'Low Stock' | 'Out of Stock';
   store_id: string;
+  image_url?: string; // ◄ SASALO SA LINK NG LARAWAN GALING SUPABASE
 }
 
 export default function SellerInventoryPage() {
@@ -66,7 +68,8 @@ export default function SellerInventoryPage() {
 
         const { data, error } = await supabase
           .from('products')
-          .select('id, name, sku, price, stock, store_id')
+          // 🟢 BINAGO/INAYOS: Isinama na ang image_url sa field parameters ng data fetching engine
+          .select('id, name, sku, price, stock, store_id, image_url')
           .eq('store_id', storeData.id)
           .order('name', { ascending: true });
 
@@ -89,6 +92,7 @@ export default function SellerInventoryPage() {
 
     if (seller) fetchInventoryData();
   }, [seller, router]);
+
   // Function para sa pansamantalang pagbabago ng stock sa client-side input view
   const handleStockChange = (id: string, newStock: number) => {
     const safeStock = Math.max(0, newStock);
@@ -129,7 +133,6 @@ export default function SellerInventoryPage() {
           .eq('id', id)
           .eq('store_id', storeId) // Tenant context boundary lock node
       );
-
       const results = await Promise.all(updatePromises);
       const hasError = results.some(res => res.error);
 
@@ -215,8 +218,7 @@ export default function SellerInventoryPage() {
           />
         </div>
       </div>
-
-      {/* 📊 INVENTORY SHEET DATA TABLE COMPONENT */}
+{/* 📊 INVENTORY SHEET DATA TABLE COMPONENT */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-3">
           <RefreshCw size={24} className="animate-spin text-ink/40" />
@@ -251,7 +253,33 @@ export default function SellerInventoryPage() {
                   .map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-6 font-mono font-medium text-ink/60">{item.sku || 'WALANG SKU'}</td>
-                      <td className="py-4 px-6"><p className="font-semibold text-ink text-sm">{item.name}</p></td>
+                      
+                      {/* 🟢 BINAGO/INAYOS: Idinagdag ang image preview framework sa tabi ng pangalan sa spreadsheet */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          {/* Image Box Layer */}
+                          <div className="w-10 h-10 rounded-xl bg-gray-50 border border-ink/5 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {item.image_url ? (
+                              <img 
+                                src={item.image_url} 
+                                alt={item.name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.88a2 2 0 0 0 2 0l8-4.66a2 2 0 0 0 1-1.73l-.03-9.45a2 2 0 0 0-1.03-1.74L13 2.2a2 2 0 0 0-2 0L3.03 6.3a2 2 0 0 0-1 1.73l.03 9.45a2 2 0 0 0 1.03 1.74z"/><path d="M12 22V12"/><path d="M12 12 4.05 7.5"/><path d="m12 12 7.95-4.5"/></svg>';
+                                }}
+                              />
+                            ) : (
+                              <Package size={16} className="text-ink/20" />
+                            )}
+                          </div>
+                          {/* Metadata Text Node */}
+                          <div className="flex flex-col">
+                            <p className="font-semibold text-ink text-sm leading-tight">{item.name}</p>
+                            <span className="text-[10px] text-ink/40 font-mono tracking-tight mt-0.5 uppercase">ID: {item.id.slice(0, 6)}</span>
+                          </div>
+                        </div>
+                      </td>
+
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-[10px] tracking-wide uppercase ${
                           item.status === 'In Stock' ? 'bg-emerald-50 text-emerald-700' :
