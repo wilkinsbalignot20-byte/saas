@@ -1,13 +1,12 @@
- // src/app/dashboard/[seller]/page.tsx [PART 1 OF 3]
-'use client';
+ 'use client';
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, ShoppingBag, AlertTriangle, Ticket, Tag } from 'lucide-react';
+import Link from 'next/link'; // 🌐 Gagamitin para sa malinis na storefront redirection tabs
+import { TrendingUp, ShoppingBag, AlertTriangle, Ticket, Tag, ExternalLink } from 'lucide-react';
 
-// 🚀 CRITICAL INJECTION ENGINE DIRECTIVE: Pinipilit ang Next.js na basahin ito bilang dynamic rendering layout
-// upang tuluyang maalis ang hard reload 404 block configurations.
+// 🚀 CRITICAL INJECTION ENGINE DIRECTIVE: Pinipilit ang Next.js na basahin ito bawat dynamic client query refresh
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
@@ -17,7 +16,7 @@ interface PageProps {
 export default function SellerDashboard({ params }: PageProps) {
   const router = useRouter();
   
-  // Unwrap parameters cleanly using async layer hooks standard
+  // Unwrap parameters cleanly using async layer hooks standard Next.js 15
   const resolvedParams = use(params);
   const sellerSlug = resolvedParams.seller;
 
@@ -34,7 +33,6 @@ export default function SellerDashboard({ params }: PageProps) {
   const [ordersCount, setOrdersCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [activeVouchersCount, setActiveVouchersCount] = useState(0);
-// src/app/dashboard/[seller]/page.tsx [PART 2 OF 3]
 
   useEffect(() => {
     const fetchDashboardMetrics = async () => {
@@ -69,7 +67,7 @@ export default function SellerDashboard({ params }: PageProps) {
 
         const activeStoreId = storeData.id;
 
-        // 2. REAL DATABASE METRICS COMPUTATION (Tinanggal ang lahat ng static example values):
+        // 2. REAL DATABASE METRICS COMPUTATION:
         
         // A. Kumuha ng kabuuang halaga ng Total Revenue mula sa successful completed orders
         const { data: revenueData, error: revenueError } = await supabase
@@ -120,12 +118,12 @@ export default function SellerDashboard({ params }: PageProps) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-paper h-screen">
-        <div className="animate-pulse text-sm font-medium text-ink/50 font-mono">Loading your secure merchant platform dashboard node…</div>
+        <div className="animate-pulse text-sm font-medium text-ink/50 font-mono">
+          Loading your secure merchant platform dashboard node…
+        </div>
       </div>
     );
   }
-// src/app/dashboard/[seller]/page.tsx [PART 3 OF 3]
-
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper min-h-screen">
       <header className="flex items-center justify-between border-b border-ink/5 pb-6">
@@ -149,7 +147,7 @@ export default function SellerDashboard({ params }: PageProps) {
         )}
       </header>
 
-      {/* REVENUE HERO — the number that actually matters gets the weight, not four equal boxes */}
+      {/* REVENUE HERO — Ang pinakamahalagang numero sa dashboard metrics mo */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 bg-ink text-paper rounded-2xl p-8 flex flex-col justify-between">
           <div className="flex items-start justify-between">
@@ -164,7 +162,7 @@ export default function SellerDashboard({ params }: PageProps) {
           </div>
         </div>
 
-        {/* A single stitched strip instead of three more identical cards */}
+        {/* Tabular side rows metrics panel configuration */}
         <div className="bg-white border border-ink/10 rounded-2xl divide-y divide-dashed divide-ink/10 flex flex-col">
           <div className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
@@ -215,6 +213,7 @@ export default function SellerDashboard({ params }: PageProps) {
           </div>
         </div>
 
+        {/* STORE APPEARANCE CONTROL CONSOLE PANEL */}
         <div className="bg-white border border-ink/10 rounded-2xl p-6 flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-semibold text-ink/60 mb-2">Store appearance</h3>
@@ -229,18 +228,24 @@ export default function SellerDashboard({ params }: PageProps) {
             </div>
           </div>
 
-          <button 
-            onClick={() => {
-              if (storeSlug) {
-                router.push(`/dashboard/${storeSlug}/setting`);
-              } else {
-                alert('Store link handle parameters are currently unavailable.');
-              }
-            }}
-            className="w-full bg-ink text-paper font-semibold py-3 rounded-xl text-sm mt-6 hover:bg-ink/90 transition-colors cursor-pointer"
-          >
-            Customize your store
-          </button>
+          {/* 🌐 GINADAGDAG: Ang "Tingnan ang Live Store" button link gateway controller */}
+          {storeSlug ? (
+            <Link 
+              href={`/store/${storeSlug}`}
+              target="_blank" // 🚀 BUKAS SA BAGONG TAB: Para makita ni merchant ang live shop nang hindi nawawala sa dashboard console
+              className="w-full bg-ink text-paper font-semibold py-3.5 rounded-xl text-xs mt-6 hover:bg-ink/90 transition-all active:scale-[0.98] text-center inline-flex items-center justify-center gap-2 cursor-pointer select-none shadow-sm uppercase tracking-wide font-sans"
+            >
+              <span>Tingnan ang Live Store</span>
+              <ExternalLink size={13} />
+            </Link>
+          ) : (
+            <button 
+              disabled
+              className="w-full bg-gray-100 text-gray-400 font-semibold py-3.5 rounded-xl text-xs mt-6 text-center cursor-not-allowed opacity-50 uppercase tracking-wide"
+            >
+              Locating application store parameters...
+            </button>
+          )}
         </div>
       </div>
     </main>

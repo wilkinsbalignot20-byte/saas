@@ -1,7 +1,9 @@
- // src/app/[storeSlug]/ProductCard.tsx
+ // src/app/store/[storeSlug]/ProductCard.tsx
 'use client';
 
-import { useCart } from "../../context/CartContext";
+import { useCart } from "../../../context/CartContext";
+import { useRouter } from "next/navigation"; // 🟢 GINADAGDAG: Router engine para sa page transitions
+import { ImageOff, ShoppingBag } from "lucide-react";
 
 interface ProductCardProps {
   product: {
@@ -9,41 +11,80 @@ interface ProductCardProps {
     name: string;
     price: number;
     stock: number;
+    image_url?: string | null; // 🟢 GINADAGDAG: Isinama para gumana ang dynamic upload visualization node mo
   };
   brandColor: string;
 }
 
 export default function ProductCard({ product, brandColor }: ProductCardProps) {
   const { addToCart } = useCart();
+  const router = useRouter(); // 🟢 INITIALIZATION: Buhayin ang router controller
+
+  // Handler utility para sa automated routing navigation loop patungo kay variantId view
+  const handleNavigateToDetailView = () => {
+    // I-convert ang pangalan ng produkto para maging malinis at lowercase text string URL parameter slug
+    const cleanProductSlug = product.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+    // 🚀 THE SYSTEM ROADMAP CONNECTION:
+    // Idadaong natin ang customer sa: /[product]/[productid]/[variantId]
+    // Gagamitin natin pansamantala ang product.id bilang default variant configuration token fallback array tracker
+    router.push(`/${cleanProductSlug}/${product.id}/${product.id}`);
+  };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between p-5 group">
-      <div>
-        {/* Placeholder Box para sa Larawan ng Produkto */}
-        <div className="w-full h-40 bg-gray-50 rounded-xl flex items-center justify-center text-gray-300 mb-4 font-mono text-[10px] border border-gray-100 group-hover:bg-gray-100/50 transition-colors">
-          📷 NO IMAGE AVAILABLE
+    <div className="bg-white border border-ink/10 rounded-2xl overflow-hidden hover:border-ink/20 transition-all flex flex-col justify-between p-5 group">
+      
+      {/* WRAPPER LAYER: Gawing clickable ang itaas na bahagi ng card para sa page redirect navigation */}
+      <div onClick={handleNavigateToDetailView} className="cursor-pointer flex-1">
+        
+        {/* 📸 DYNAMIC IMAGE VIEW FRAME: Luluwa na nang malinis ang inupload mong photo galing storage block */}
+        <div className="w-full h-40 bg-ink/[0.03] rounded-xl flex items-center justify-center overflow-hidden border border-ink/5 group-hover:bg-ink/5 transition-colors mb-4 relative">
+          {product.image_url ? (
+            <img 
+              src={product.image_url} 
+              alt={product.name} 
+              className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+              loading="lazy"
+            />
+          ) : (
+            <ImageOff size={20} className="text-ink/20" strokeWidth={1.5} />
+          )}
         </div>
-        <h4 className="font-bold text-sm text-gray-800 line-clamp-1">{product.name}</h4>
-        <p className="text-base font-black mt-1 font-mono" style={{ color: brandColor }}>
+
+        <h4 className="font-medium text-sm text-ink line-clamp-1 group-hover:text-ink/80 transition-colors">
+          {product.name}
+        </h4>
+        
+        <p className="text-base font-semibold mt-1" style={{ color: brandColor }}>
           ₱{Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
         </p>
       </div>
       
+      {/* LOWER BASE INTERACTION CONTROLS SHEET (Add to Cart Area) */}
       <div className="pt-4 space-y-3">
-        <div className="flex justify-between items-center text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-          <span>Availability:</span>
-          <span className={product.stock > 0 ? 'text-green-600' : 'text-red-500'}>
-            {product.stock > 0 ? `${product.stock} Units Left` : 'Out of stock'}
+        <div className="flex justify-between items-center text-xs text-ink/40 select-none">
+          <span>Availability</span>
+          <span className={product.stock > 0 ? 'text-emerald-600' : 'text-red-500'}>
+            {product.stock > 0 ? `${product.stock} left` : 'Out of stock'}
           </span>
         </div>
         
         <button 
-          onClick={() => addToCart({ id: product.id, name: product.name, price: Number(product.price) })}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation(); // 🛡️ CRITICAL SHIELD: Pinipigilan nitong mag-trigger ang page navigation kapag Add to Cart lang ang pinindot!
+            addToCart({ id: product.id, name: product.name, price: Number(product.price) });
+          }}
           disabled={product.stock <= 0}
-          className="w-full text-white text-xs font-bold py-3 px-4 rounded-xl shadow-sm active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-wider text-center"
+          className="w-full text-white text-sm font-semibold py-3 px-4 rounded-xl active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
           style={{ backgroundColor: brandColor }}
         >
-          Add to Cart 🛒
+          <ShoppingBag size={14} strokeWidth={2} />
+          Add to cart
         </button>
       </div>
     </div>

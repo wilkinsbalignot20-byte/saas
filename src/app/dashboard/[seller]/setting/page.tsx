@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { useRouter } from 'next/navigation';
-// SELYADO: Malinis na imports ng core visual anchors para sa settings configuration
+// SELYADO: Malinis na imports ng core visual anchors para sa setting configuration
 import { Store, Save, RefreshCw, AlertCircle, CheckCircle2, Globe, ShieldAlert } from 'lucide-react';
 
-export default function SellerSettingsPage() {
+export default function SellerSettingPage() {
   const router = useRouter();
 
   // Core Identity & Meta Configuration Form States
@@ -31,7 +31,7 @@ export default function SellerSettingsPage() {
 
   // 1. SYSTEM INITIALIZATION DATA STREAM: Hahatakin ang active store row matching profiles
   useEffect(() => {
-    const fetchStoreIdentitySettings = async () => {
+    const fetchStoreIdentitySetting = async () => {
       try {
         setLoading(true);
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -69,7 +69,7 @@ export default function SellerSettingsPage() {
       }
     };
 
-    fetchStoreIdentitySettings();
+    fetchStoreIdentitySetting();
   }, [router]);
 
   // Handler para sa instant graphic component preview bago ihulog sa network storage bucket
@@ -82,7 +82,7 @@ export default function SellerSettingsPage() {
   };
 
   // 2. LIVE TRANSACTION ACTIONS: Magpapadala ng custom layout identity metrics update sa database rows
-  const handleSaveSettings = async (e: React.FormEvent) => {
+  const handleSaveSetting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeId || isSaving) return;
 
@@ -138,7 +138,7 @@ export default function SellerSettingsPage() {
       setLogoUrl(finalLogoUrl);
       setNewImageFile(null);
       setLogoPreviewUrl(null);
-      setMessage('🎉 Storefront settings configuration successfully synchronized into database!');
+      setMessage('🎉 Storefront setting configuration successfully synchronized into database!');
       
       setTimeout(() => setMessage(''), 3000);
     } catch (err: any) {
@@ -166,7 +166,7 @@ export default function SellerSettingsPage() {
       <header className="border-b border-ink/5 pb-5">
         <h1 className="font-display font-bold text-2xl md:text-3xl tracking-tight text-ink flex items-center gap-2 select-none">
           <Store className="text-teal" size={24} />
-          <span>Storefront Management & Settings</span>
+          <span>Storefront Management & Setting</span>
         </h1>
         <p className="text-sm text-ink/50 mt-1">Configure your pampublikong domain routing identifiers, identity brand descriptions, and social networking handles.</p>
       </header>
@@ -183,7 +183,7 @@ export default function SellerSettingsPage() {
         </div>
       )}
 
-      <form onSubmit={handleSaveSettings} className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-5xl">
+      <form onSubmit={handleSaveSetting} className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-5xl">
         
         {/* LEFT COLUMN: IDENTITY TEXT FIELDS INTERFACE CONTROLS */}
         <div className="bg-white border border-ink/10 p-6 rounded-2xl shadow-sm space-y-5 lg:col-span-2">
@@ -257,7 +257,7 @@ export default function SellerSettingsPage() {
             className="w-full bg-ink text-paper font-semibold py-3.5 rounded-xl text-xs shadow-sm hover:bg-ink/90 active:scale-95 disabled:opacity-40 transition inline-flex items-center justify-center gap-2 cursor-pointer mt-4"
           >
             {isSaving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={14} />}
-            <span>{isSaving ? 'Inilalagak ang mga pagbabago...' : 'Save Settings Identity'}</span>
+            <span>{isSaving ? 'Inilalagak ang mga pagbabago...' : 'Save Setting Identity'}</span>
           </button>
 
         </div>
