@@ -4,7 +4,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../lib/supabase';
 import { useRouter, useParams, usePathname } from 'next/navigation';
-import { Search, Plus, Package, RefreshCw, Save, AlertCircle, CheckCircle2, Layers, ClipboardList, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Package, RefreshCw, Save, AlertCircle, CheckCircle2, Layers, ClipboardList, Trash2 } from 'lucide-react';
+
+// Kontrata para sa state management ng pinag-aaralang variations input engine
+interface VariantInput {
+  variant_name: string;
+  sku: string;
+  price_modifier: string;
+  stock: string;
+}
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -24,7 +32,10 @@ export default function NewProductPage() {
   const [description, setDescription] = useState('');
   const [productImageFile, setProductImageFile] = useState<File | null>(null); // ◄ PICTURE STATE
 
-  // 🟢 BAGONG DAGDAG: State framework para saluhin ang mga dynamic custom classifications mula sa DB
+  // 🟢 GINADAGDAG: Dynamic array list core state para sa e-commerce variations nodes nina seller
+  const [variants, setVariants] = useState<VariantInput[]>([]);
+
+  // State framework para saluhin ang mga dynamic custom classifications mula sa DB
   const [dbCategories, setDbCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
@@ -39,7 +50,7 @@ export default function NewProductPage() {
     { href: `/dashboard/${seller}/product/categories`, label: 'Categories', icon: Layers },
   ];
 
-  // 🟢 BAGONG DAGDAG: Awtomatikong hahatakin ang mga custom entries (tulad ng Best Seller) ni tenant
+  // Awtomatikong hahatakin ang mga custom entries (tulad ng Best Seller) ni tenant
   useEffect(() => {
     const fetchActiveCategories = async () => {
       try {
@@ -64,9 +75,8 @@ export default function NewProductPage() {
         if (error) throw error;
         setDbCategories(data || []);
         
-        // Kung may nahanap na custom categories ang merchant, itakda ang slug ng una bilang pre-selected framework choice
         if (data && data.length > 0) {
-          setCategory(data[0].slug); // Gagamitin natin ang slug para selyado ang URL link management sa labas
+          setCategory(data[0].slug); 
         }
       } catch (err: any) {
         console.error('Error loading product creation categories loop:', err.message);
@@ -77,6 +87,21 @@ export default function NewProductPage() {
 
     if (seller) fetchActiveCategories();
   }, [seller]);
+
+  // Dynamic Array Helper Utilities para sa pagdadagdag at pagbura ng variant fields inputs
+  const handleAddVariantField = () => {
+    setVariants([...variants, { variant_name: '', sku: '', price_modifier: '0', stock: '0' }]);
+  };
+
+  const handleRemoveVariantField = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
+  const handleVariantChange = (index: number, field: keyof VariantInput, value: string) => {
+    const updated = [...variants];
+    updated[index][field] = value;
+    setVariants(updated);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +128,7 @@ export default function NewProductPage() {
 
       if (!storeData) throw new Error('Hindi nahanap ang profile record ng iyong tindahan.');
 
-      // 3. 📸 STORAGE UPLOAD ENGINE NODE: I-upload ang piniling larawan kung mayroon man
+      // 3. 📸 STORAGE UPLOAD ENGINE NODE
       let uploadedImageUrl: string | null = null;
 
       if (productImageFile) {
@@ -111,7 +136,7 @@ export default function NewProductPage() {
         const fileName = `${storeData.id}-${Date.now()}.${fileExtension}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('logos') // Naka-lock sa iyong 'logos' bucket
+          .from('logos') 
           .upload(`products/${fileName}`, productImageFile, {
             cacheControl: '3600',
             upsert: true,
@@ -119,7 +144,6 @@ export default function NewProductPage() {
 
         if (uploadError) throw uploadError;
 
-        // Kunin ang live public address ng larawan galing sa storage cloud bucket
         const { data: { publicUrl } } = supabase.storage
           .from('logos')
           .getPublicUrl(`products/${fileName}`);
@@ -127,7 +151,7 @@ export default function NewProductPage() {
         uploadedImageUrl = publicUrl;
       }
 
-      // 4. DATABASE TRANSACTION: I-save sa products table kasama ang string image url link
+      // 4. DATABASE TRANSACTION: I-save sa products table
       const { data: newProduct, error } = await supabase
         .from('products')
         .insert([
@@ -136,7 +160,7 @@ export default function NewProductPage() {
             name: name.trim(),
             sku: sku.trim() || null,
             brand: brand.trim() || null,
-            category: category, // ◄ Kakainin nito kung anong slug ang aktibong napili sa automatic dropdown
+            category: category, 
             description: description.trim() || null,
             price: productPrice,
             stock: productStock,
@@ -148,7 +172,24 @@ export default function NewProductPage() {
 
       if (error) throw error;
 
-      // 5. 🤖 AUTOMATION EDGEWAY TRIGGER: Magpapadala ng signal kay Inngest v4 Engine gamit ang strict payload contracts
+      // 🟢 GINADAGDAG: Relational database transaction saver para sa variations table rows
+      if (variants.length > 0) {
+        const variantsPayload = variants.map((v) => ({
+          product_id: newProduct.id,
+          variant_name: v.variant_name.trim(),
+          sku: v.sku.trim() || null,
+          price_modifier: parseFloat(v.price_modifier) || 0,
+          stock: parseInt(v.stock, 10) || 0,
+        }));
+
+        const { error: variantInsertError } = await supabase
+          .from('product_variants')
+          .insert(variantsPayload);
+
+        if (variantInsertError) throw variantInsertError;
+      }
+
+      // 5. 🤖 AUTOMATION EDGEWAY TRIGGER
       await fetch('/api/inngest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,9 +204,8 @@ export default function NewProductPage() {
         })
       }).catch(err => console.error("Inngest synchronization trigger issue:", err));
 
-      setMessage('🎉 Produkto at larawan ay matagumpay na naidagdag sa iyong catalog!');
+      setMessage('🎉 Produkto, larawan, at variations ay matagumpay na naidagdag sa iyong catalog!');
       
-      // FIXED DYNAMIC ROUTING MAP REDIRECT
       setTimeout(() => {
         router.push(`/dashboard/${seller}/product`);
       }, 1500);
@@ -192,6 +232,7 @@ export default function NewProductPage() {
           return (
             <button
               key={tab.href}
+              type="button"
               onClick={() => router.push(tab.href)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all cursor-pointer ${
                 isActive
@@ -242,7 +283,7 @@ export default function NewProductPage() {
         {/* SKU & Brand Input Fields Elements */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">SKU / Item Code (Opsyonal)</label>
+            <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Base SKU / Item Code (Opsyonal)</label>
             <input 
               type="text" 
               placeholder="Halimbawa: OKI-MILK-101" 
@@ -266,7 +307,7 @@ export default function NewProductPage() {
         {/* Pricing, Stock Volume, and Category dropdown choices grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Presyo (₱)</label>
+            <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Base Presyo (₱)</label>
             <input 
               type="number" 
               step="0.01"
@@ -279,7 +320,7 @@ export default function NewProductPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Dami ng Stock</label>
+            <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Total Base Stock</label>
             <input 
               type="number" 
               required 
@@ -292,7 +333,6 @@ export default function NewProductPage() {
 
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Kategorya</label>
-            {/* 🟢 BINAGO/INAYOS: Ginawang dynamic drop-down loader block mula sa ininput ni tenant */}
             <select
               value={category}
               disabled={loadingCategories}
@@ -302,10 +342,8 @@ export default function NewProductPage() {
               {loadingCategories ? (
                 <option value="Loading">Loading categories...</option>
               ) : dbCategories.length === 0 ? (
-                // System default option framework kung blangko ang categories sheet table ng tindahan
                 <option value="General">General</option>
               ) : (
-                // Loop framework sa mga nailigtas na inputs ni seller (e.g., Best Seller, Drinks)
                 dbCategories.map((cat) => (
                   <option key={cat.id} value={cat.slug}>
                     {cat.name}
@@ -315,16 +353,17 @@ export default function NewProductPage() {
             </select>
           </div>
         </div>
+
         {/* 📸 INTERACTIVE PRODUCT IMAGE UPLOADER COMPONENT LAYER */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-ink/40 uppercase tracking-wide">Larawan ng Produkto (Opsyonal)</label>
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 border border-ink/10 rounded-xl p-4">
+          <div className="bg-gray-50 border border-ink/10 rounded-xl p-4">
             <input
               type="file"
               accept="image/*"
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
-                  setProductImageFile(e.target.files[0]); // Itabi ang hilaw na file sa state para sa storage upload
+                  setProductImageFile(e.target.files[0]);
                 }
               }}
               className="w-full text-xs text-ink/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-ink file:text-paper file:hover:bg-ink/80 file:cursor-pointer"
@@ -342,6 +381,89 @@ export default function NewProductPage() {
             rows={3}
             className="w-full bg-gray-50 border border-ink/10 rounded-xl px-4 py-3 text-xs text-ink outline-none focus:border-ink/30 transition-colors resize-none font-medium" 
           />
+        </div>
+
+        {/* 🟢 GINADAGDAG: DYNAMIC VARIATIONS MANAGEMENT INTERFACE AREA */}
+        <div className="border-t border-dashed border-ink/10 pt-4 mt-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-xs font-bold text-ink block">Product Variations</span>
+              <p className="text-[10px] text-ink/40 leading-tight">Magdagdag ng iba't ibang sukat, kulay, o mga sub-items dito.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddVariantField}
+              className="bg-ink text-paper text-[10px] px-3 py-1.5 rounded-lg font-bold hover:bg-ink/80 transition active:scale-95 flex items-center gap-1 cursor-pointer"
+            >
+              <Plus size={12} />
+              <span>Add Variant</span>
+            </button>
+          </div>
+
+          {/* Dinamikong Hilera ng mga Variant Inputs ng Merchant */}
+          {variants.length > 0 && (
+            <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+              {variants.map((variant, index) => (
+                <div key={index} className="p-3 bg-gray-50 border border-ink/5 rounded-xl space-y-3 relative">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveVariantField(index)}
+                    className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 transition cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-bold text-ink/40 uppercase">Variant Name</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g., Black / Large"
+                        value={variant.variant_name}
+                        onChange={(e) => handleVariantChange(index, 'variant_name', e.target.value)}
+                        className="w-full bg-white border border-ink/10 rounded-lg px-2 py-1.5 text-xs text-ink outline-none focus:border-ink/30 font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-bold text-ink/40 uppercase">Variant SKU</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., OKI-BLK-LG"
+                        value={variant.sku}
+                        onChange={(e) => handleVariantChange(index, 'sku', e.target.value)}
+                        className="w-full bg-white border border-ink/10 rounded-lg px-2 py-1.5 text-xs text-ink outline-none focus:border-ink/30 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-bold text-ink/40 uppercase">Price Modifier (₱)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={variant.price_modifier}
+                        onChange={(e) => handleVariantChange(index, 'price_modifier', e.target.value)}
+                        className="w-full bg-white border border-ink/10 rounded-lg px-2 py-1.5 text-xs text-ink outline-none font-mono font-bold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-bold text-ink/40 uppercase">Variant Stock</label>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={variant.stock}
+                        onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+                        className="w-full bg-white border border-ink/10 rounded-lg px-2 py-1.5 text-xs text-ink outline-none font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Action Publish Submitter Button Node layout */}
