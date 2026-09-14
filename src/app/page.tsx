@@ -13,7 +13,7 @@ export default function SaasLandingPage() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink/70">
             <a href="#how-it-works" className="hover:text-ink transition-colors">How it works</a>
             <a href="#audiences" className="hover:text-ink transition-colors">For sellers</a>
-            <a href="#explore" className="hover:text-ink transition-colors">Explore stores</a>
+            <Link href="/explore" className="hover:text-ink transition-colors">Explore stores</Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link
@@ -22,6 +22,7 @@ export default function SaasLandingPage() {
             >
               Log in
             </Link>
+            {/* 🟢 RE-ALIGNMENT FIXED: Itinama pabalik sa saktong /signup folder name mo nang walang gitling */}
             <Link
               href="/signup"
               className="text-sm font-semibold px-4 py-2 rounded-full bg-ink text-paper hover:bg-ink/90 transition-colors"
@@ -47,53 +48,88 @@ export default function SaasLandingPage() {
             stock behind the scenes.
           </p>
           <div className="flex flex-wrap items-center gap-4">
+            {/* 🟢 RE-ALIGNMENT FIXED: Itinama pabalik sa saktong /signup folder name mo nang walang gitling */}
             <Link
               href="/signup"
               className="inline-flex items-center gap-2 bg-ink text-paper font-semibold px-6 py-3.5 rounded-full hover:bg-ink/90 transition-colors"
             >
               Start your store
             </Link>
-            <a
-              href="#explore"
+            <Link
+              href="/explore"
               className="inline-flex items-center gap-2 border border-ink/20 font-semibold px-6 py-3.5 rounded-full hover:border-ink/40 transition-colors"
             >
               Browse existing stores
-            </a>
+            </Link>
           </div>
           <p className="text-sm text-ink/40 mt-6">No credit card required to start.</p>
         </div>
 
-        {/* Live storefront stack */}
+        {/* 🏪 DYNAMIC STOREFRONT STACK AREA */}
         <div className="relative h-[420px] hidden lg:block">
-          <div className="absolute top-0 left-4 w-72 -rotate-6 rounded-2xl bg-ink text-paper p-5 shadow-xl">
+          
+          {/* BOX 1: Manipu Wear */}
+          <Link href="/explore" className="absolute top-0 left-4 w-72 -rotate-6 rounded-2xl bg-ink text-paper p-5 shadow-xl block hover:-translate-y-1 transition-transform cursor-pointer group select-none overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="font-display font-semibold text-sm">Manipu Wear</span>
+              <span className="font-display font-semibold text-sm group-hover:text-marigold transition-colors">Manipu Wear</span>
               <span className="w-2 h-2 rounded-full bg-marigold" />
             </div>
-            <div className="h-24 rounded-lg bg-marigold/20 mb-4" />
+            
+            <div className="h-24 rounded-lg bg-marigold/10 mb-4 relative overflow-hidden border border-paper/10">
+              <video 
+                src="/wear.mp4" 
+                autoPlay loop muted playsInline 
+                className="w-full h-full object-cover pointer-events-none" 
+              />
+            </div>
+
             <div className="h-2 w-3/4 rounded bg-paper/20 mb-2" />
             <div className="h-2 w-1/2 rounded bg-paper/20" />
+          </Link>
+
+          {/* "Go to our market" badge sa gitna */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none select-none">
+            <div className="bg-white text-ink border border-ink/15 font-display font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-2xl animate-pulse whitespace-nowrap">
+              Go to our market
+            </div>
           </div>
 
-          <div className="absolute top-24 right-2 w-72 rotate-3 rounded-2xl bg-teal text-white p-5 shadow-xl">
+          {/* BOX 2: Infinity Gems Coffee */}
+          <Link href="/explore" className="absolute top-24 right-2 w-72 rotate-3 rounded-2xl bg-teal text-white p-5 shadow-xl block hover:-translate-y-1 transition-transform cursor-pointer group select-none overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="font-display font-semibold text-sm">Infinity Gems Coffee</span>
+              <span className="font-display font-semibold text-sm group-hover:text-marigold transition-colors">Infinity Gems Coffee</span>
               <span className="w-2 h-2 rounded-full bg-white" />
             </div>
-            <div className="h-24 rounded-lg bg-white/15 mb-4" />
+            
+            <div className="h-24 rounded-lg bg-white/10 mb-4 relative overflow-hidden border border-white/10">
+              <video 
+                src="/coffee.mp4" 
+                autoPlay loop muted playsInline 
+                className="w-full h-full object-cover pointer-events-none" 
+              />
+            </div>
+
             <div className="h-2 w-2/3 rounded bg-white/25 mb-2" />
             <div className="h-2 w-1/3 rounded bg-white/25" />
-          </div>
+          </Link>
 
-          <div className="absolute bottom-0 left-16 w-72 -rotate-2 rounded-2xl bg-white border border-ink/10 p-5 shadow-xl">
+          {/* BOX 3: Sariling Tindahan */}
+          <Link href="/explore" className="absolute bottom-0 left-16 w-72 -rotate-2 rounded-2xl bg-white border border-ink/10 p-5 shadow-xl block hover:-translate-y-1 transition-transform cursor-pointer group select-none overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="font-display font-semibold text-sm text-ink">Sariling Tindahan</span>
+              <span className="font-display font-semibold text-sm text-ink group-hover:text-marigold transition-colors">Sariling Tindahan</span>
               <span className="w-2 h-2 rounded-full bg-coral" />
             </div>
-            <div className="h-24 rounded-lg bg-coral/10 mb-4" />
+            
+            <div className="h-24 rounded-lg bg-coral/10 mb-4 relative overflow-hidden border border-ink/10">
+              <video 
+                src="/tindahan.mp4" 
+                autoPlay loop muted playsInline 
+                className="w-full h-full object-cover pointer-events-none" 
+              />
+            </div>
             <div className="h-2 w-3/5 rounded bg-ink/10 mb-2" />
             <div className="h-2 w-2/5 rounded bg-ink/10" />
-          </div>
+          </Link>
         </div>
       </section>
 
@@ -110,6 +146,7 @@ export default function SaasLandingPage() {
               <li>Print shipping labels for J&amp;T, Flash, SPX</li>
               <li>Track your balance and payouts</li>
             </ul>
+            {/* 🟢 RE-ALIGNMENT FIXED: Itinama ang link mula /sign-up pabalik sa /signup */}
             <Link
               href="/signup"
               className="inline-flex items-center gap-2 font-semibold text-ink border-b-2 border-marigold pb-0.5"
@@ -127,6 +164,7 @@ export default function SaasLandingPage() {
               <li>Track orders from checkout to delivery</li>
               <li>Chat with the seller in real time</li>
             </ul>
+            {/* 🟢 RE-ALIGNMENT FIXED: Itinama ang link mula /sign-up pabalik sa /signup */}
             <Link
               href="/signup"
               className="inline-flex items-center gap-2 font-semibold text-ink border-b-2 border-teal pb-0.5"
@@ -207,6 +245,7 @@ export default function SaasLandingPage() {
           </div>
           <div className="flex items-center gap-6 text-sm">
             <Link href="/login" className="hover:text-paper transition-colors">Log in</Link>
+            {/* 🟢 RE-ALIGNMENT FIXED: Itinama ang link mula /sign-up pabalik sa /signup sa footer */}
             <Link href="/signup" className="hover:text-paper transition-colors">Sign up</Link>
             <span className="text-paper/30">© 2026 Manipu</span>
           </div>

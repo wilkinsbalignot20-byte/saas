@@ -1,4 +1,4 @@
- // src/app/signup/page.tsx [PART 1 OF 3]
+ // src/app/sign-up/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -21,7 +21,6 @@ export default function SellerSignUpPage() {
   const isFormValid = () => {
     return fullName && email && password;
   };
-// src/app/signup/page.tsx [PART 2 OF 3]
 
   // 🚀 EXPERT OAUTH NODE: Google Sign-Up Action Trigger
   const handleGoogleSignUp = async () => {
@@ -79,7 +78,6 @@ export default function SellerSignUpPage() {
       setLoading(false);
     }
   };
-// src/app/signup/page.tsx [PART 3 OF 3]
 
   return (
     <div className="min-h-screen bg-paper text-ink flex flex-col items-center justify-center p-6 font-body">
@@ -109,7 +107,6 @@ export default function SellerSignUpPage() {
               onChange={(e) => setFullName(e.target.value)}
               className="w-full bg-paper border border-ink/15 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-marigold transition-colors"
             />
-            
             <input
               type="email"
               required
@@ -168,7 +165,7 @@ export default function SellerSignUpPage() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isFormValid()}
               className="w-full bg-ink text-paper font-semibold py-3 rounded-xl text-sm hover:bg-ink/90 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Creating your account…' : 'Continue to Store Setup'}
