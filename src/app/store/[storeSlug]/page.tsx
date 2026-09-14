@@ -4,7 +4,8 @@
 import { useState, useEffect, use } from 'react';
 import { notFound } from 'next/navigation';
 import { ShoppingBag, Package } from 'lucide-react';
-import ProductCard from './ProductCard'; // 🟢 SINKRONISADO: Tinawag ang kasama nitong ProductCard component sa folder
+import ProductCard from './ProductCard'; 
+import { supabase } from '../../../lib/supabase'; // 🟢 DIREKTANG IMPORT: Browser client para sa ligtas na table execution
 
 interface ProductCatalogItem {
   id: string;
@@ -20,7 +21,7 @@ interface StoreProfile {
   name: string;
   slug: string;
   description: string | null;
-  brand_color?: string; // Opsyonal na branding identity parameter color hex
+  brand_color?: string; 
 }
 
 interface StorefrontPageProps {
@@ -28,7 +29,6 @@ interface StorefrontPageProps {
 }
 
 export default function CustomerStorefrontPage({ params }: StorefrontPageProps) {
-  // Basagin ang Next.js 15 async parameters wrapper safely gamit ang React.use()
   const resolvedParams = use(params);
   const storeSlug = resolvedParams.storeSlug;
 
@@ -36,7 +36,7 @@ export default function CustomerStorefrontPage({ params }: StorefrontPageProps) 
   const [products, setProducts] = useState<ProductCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Default color parameter kung sakaling walang brand_color column ang database row mo ngayon
+  // Default theme color dahil wala pang brand_color column sa stores table mo ngayon
   const activeBrandColor = store?.brand_color || '#111111'; 
 
   useEffect(() => {
@@ -44,32 +44,40 @@ export default function CustomerStorefrontPage({ params }: StorefrontPageProps) 
       try {
         setLoading(true);
 
-        // 🟢 METHOD EXTROLLER CONNECT: Tinatawag ang saktong folder path ng iyong products API route!
-        // Inalis ang tawag sa multong /api/stores/ para maiwasan ang HTML token parsing crash logs.
-        const productsRes = await fetch(`/store/${storeSlug}/product`);
-        
-        // 🛡️ DIAGNOSTIC SHIELD: Humarang laban sa HTML syntax errors bago mag-crash ang JSON parser
-        if (!productsRes.ok) {
-          console.error(`🚨 Storefront Products Route Error: Status ${productsRes.status}`);
-          const rawHtmlText = await productsRes.text(); // Basahin muna bilang plain text/HTML para mahuli ang glitch
-          console.log("HTML response leaked instead of JSON matrix:", rawHtmlText.substring(0, 150));
-          return notFound(); // Kusa at tahimik na mag-404 sa screen sa halip na i-crash ang JavaScript console ng browser
+        // 🗄️ DIRECT QUERY 1: Kunin ang Profile ng Store base sa dynamic storeSlug
+        const { data: storeData, error: storeError } = await supabase
+          .from('stores') 
+          .select('id, name, slug, description') // 🟢 INAYOS: Inalis ang brand_color dito para hindi na mag-error ang Supabase
+          .eq('slug', storeSlug)
+          .single();
+
+        if (storeError || !storeData) {
+          console.error('🚨 Error fetching store profile from Supabase matrix:', storeError?.message);
+          setStore(null);
+          return;
         }
 
-        const productsData = await productsRes.json();
-        
-        // 📊 RELATIONAL PARSING LAYER:
-        // Dahil ang `/store/[storeSlug]/product/route.ts` mo ang API endpoint na konektado sa database,
-        // itatalaga natin ang dynamic list ng products at sync data layout properties dito.
-        setProducts(productsData || []);
-        
-        // Dynamic profile mapping switcher fallback module
+        // Itakda ang nakuha mong record sa profile state ng page
         setStore({
-          id: '1',
-          name: storeSlug.toUpperCase(),
-          slug: storeSlug,
-          description: "Browse through our updated storefront variation structures. Enjoy secure checkouts and reliable national delivery options."
+          id: storeData.id,
+          name: storeData.name,
+          slug: storeData.slug,
+          description: storeData.description,
+          brand_color: '#111111' // 🟢 FALLBACK MODULE: Default solid black muna ang ibinabato habang wala pang style system
         });
+
+        // 🗄️ DIRECT QUERY 2: Kunin ang mga Products na pagmamay-ari ng store gamit ang nakuha nating storeData.id
+        const { data: productsData, error: productsError } = await supabase
+          .from('products') // 100% lapat sa ipinakita mong SQL migrations schema table definition
+          .select('id, name, price, stock, image_url, category')
+          .eq('store_id', storeData.id);
+
+        if (productsError) {
+          console.error('🚨 Error fetching products inventory array from Supabase:', productsError.message);
+          setProducts([]);
+        } else {
+          setProducts(productsData || []);
+        }
 
       } catch (err: any) {
         console.error('Error rendering customer catalog pipeline:', err.message);
@@ -97,7 +105,7 @@ export default function CustomerStorefrontPage({ params }: StorefrontPageProps) 
   return (
     <div className="space-y-10 w-full animate-in fade-in duration-300">
       
-      {/* Hero banner */}
+      {/* Hero banner ng tindahan */}
       <div className="bg-white border border-ink/10 rounded-3xl p-6 md:p-10 flex flex-col justify-center space-y-4 relative overflow-hidden">
         <span className="block w-10 h-1 rounded-full" style={{ backgroundColor: activeBrandColor }} />
         <h1 className="font-display font-black text-3xl md:text-5xl tracking-tight max-w-xl text-ink leading-tight">
@@ -108,7 +116,7 @@ export default function CustomerStorefrontPage({ params }: StorefrontPageProps) 
         </p>
       </div>
 
-      {/* Catalog section */}
+      {/* Catalog ng mga paninda */}
       <div className="space-y-6">
         <div className="flex items-baseline justify-between border-b border-ink/10 pb-3 select-none">
           <h3 className="font-semibold text-base text-ink flex items-center gap-2">
@@ -121,13 +129,14 @@ export default function CustomerStorefrontPage({ params }: StorefrontPageProps) 
         </div>
 
         {products.length === 0 ? (
-          /* Empty catalog state */
+          /* Kapag walang paninda si seller */
           <div className="w-full border border-dashed border-ink/15 rounded-2xl p-12 text-center bg-white text-ink/40">
             <Package size={32} className="mx-auto text-ink/20 mb-2 stroke-[1.5]" />
             <span className="block text-sm font-semibold text-ink/70">Walang paninda sa kasalukuyan</span>
             <p className="text-xs max-w-xs mx-auto mt-0.5 leading-normal">Ang tindahan na ito ay wala pang naka-list na items sa kanyang catalog.</p>
           </div>
         ) : (
+          /* Grid listahan ng mga paninda */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
               <ProductCard 

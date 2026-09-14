@@ -2,7 +2,7 @@
 'use client';
 
 import { useCart } from "../../../context/CartContext";
-import { useRouter } from "next/navigation"; // 🟢 GINADAGDAG: Router engine para sa page transitions
+import { useRouter } from "next/navigation"; 
 import { ImageOff, ShoppingBag } from "lucide-react";
 
 interface ProductCardProps {
@@ -11,18 +11,17 @@ interface ProductCardProps {
     name: string;
     price: number;
     stock: number;
-    image_url?: string | null; // 🟢 GINADAGDAG: Isinama para gumana ang dynamic upload visualization node mo
+    image_url?: string | null; 
+    store_name?: string; // 🟢 GINADAGDAG: Pangalan ng tindahan para sa Lazada-style matrix
   };
   brandColor: string;
 }
 
 export default function ProductCard({ product, brandColor }: ProductCardProps) {
   const { addToCart } = useCart();
-  const router = useRouter(); // 🟢 INITIALIZATION: Buhayin ang router controller
+  const router = useRouter(); 
 
-  // Handler utility para sa automated routing navigation loop patungo kay variantId view
   const handleNavigateToDetailView = () => {
-    // I-convert ang pangalan ng produkto para maging malinis at lowercase text string URL parameter slug
     const cleanProductSlug = product.name
       .toLowerCase()
       .trim()
@@ -30,18 +29,16 @@ export default function ProductCard({ product, brandColor }: ProductCardProps) {
       .replace(/(^-|-$)+/g, '');
 
     // 🚀 THE SYSTEM ROADMAP CONNECTION:
-    // Idadaong natin ang customer sa: /[product]/[productid]/[variantId]
-    // Gagamitin natin pansamantala ang product.id bilang default variant configuration token fallback array tracker
-    router.push(`/${cleanProductSlug}/${product.id}/${product.id}`);
+    // Idadaong natin ang customer sa malinis na: /(marketplace)/[productSlug]
+    router.push(`/${cleanProductSlug}`);
   };
 
   return (
     <div className="bg-white border border-ink/10 rounded-2xl overflow-hidden hover:border-ink/20 transition-all flex flex-col justify-between p-5 group">
       
-      {/* WRAPPER LAYER: Gawing clickable ang itaas na bahagi ng card para sa page redirect navigation */}
       <div onClick={handleNavigateToDetailView} className="cursor-pointer flex-1">
         
-        {/* 📸 DYNAMIC IMAGE VIEW FRAME: Luluwa na nang malinis ang inupload mong photo galing storage block */}
+        {/* 📸 IMAGE VIEW FRAME */}
         <div className="w-full h-40 bg-ink/[0.03] rounded-xl flex items-center justify-center overflow-hidden border border-ink/5 group-hover:bg-ink/5 transition-colors mb-4 relative">
           {product.image_url ? (
             <img 
@@ -55,6 +52,13 @@ export default function ProductCard({ product, brandColor }: ProductCardProps) {
           )}
         </div>
 
+        {/* 🏪 STORE TAG: Lalabas lang ito kapag nasa malaking Mall homepage ang customer */}
+        {product.store_name && (
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-ink/40 mb-1">
+            {product.store_name}
+          </span>
+        )}
+
         <h4 className="font-medium text-sm text-ink line-clamp-1 group-hover:text-ink/80 transition-colors">
           {product.name}
         </h4>
@@ -64,7 +68,6 @@ export default function ProductCard({ product, brandColor }: ProductCardProps) {
         </p>
       </div>
       
-      {/* LOWER BASE INTERACTION CONTROLS SHEET (Add to Cart Area) */}
       <div className="pt-4 space-y-3">
         <div className="flex justify-between items-center text-xs text-ink/40 select-none">
           <span>Availability</span>
@@ -76,7 +79,7 @@ export default function ProductCard({ product, brandColor }: ProductCardProps) {
         <button 
           type="button"
           onClick={(e) => {
-            e.stopPropagation(); // 🛡️ CRITICAL SHIELD: Pinipigilan nitong mag-trigger ang page navigation kapag Add to Cart lang ang pinindot!
+            e.stopPropagation(); 
             addToCart({ id: product.id, name: product.name, price: Number(product.price) });
           }}
           disabled={product.stock <= 0}
