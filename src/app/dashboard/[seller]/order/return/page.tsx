@@ -1,8 +1,8 @@
- // src/app/dashboard/[seller]/orders/returns/page.tsx
+ // src/app/dashboard/[seller]/order/return/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useParams } from 'next/navigation'; // 🟢 TINAMAAN: Idinagdag ang useParams hook layer para sa tenant extraction
 import { supabase } from '../../../../../lib/supabase';
 import { ArrowLeft, AlertCircle, CheckCircle2, XCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 
@@ -17,6 +17,11 @@ interface ReturnItem {
 export default function SellerReturnsPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams(); // 🟢 CORE TENANT TRACKER: Hinuhuli ang real workspace token active stream
+
+  // Safe string extraction para sa dynamic seller slug identifier
+  const seller = params?.seller as string;
+
   const [returnsList, setReturnsList] = useState<ReturnItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsSaving] = useState(false);
@@ -86,6 +91,7 @@ export default function SellerReturnsPage() {
       setIsSaving(false);
     }
   };
+
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       
@@ -93,7 +99,7 @@ export default function SellerReturnsPage() {
       <div className="flex flex-col gap-5 border-b border-ink/5 pb-5">
         <div className="space-y-1">
           <button 
-            onClick={() => router.push('/seller/orders')} 
+            onClick={() => router.push(`/dashboard/${seller}/order`)} // 🟢 DYNAMIC CORRECTION
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/40 hover:text-ink transition-colors font-mono mb-2 cursor-pointer"
           >
             <ArrowLeft size={12} />
@@ -103,28 +109,28 @@ export default function SellerReturnsPage() {
           <p className="text-sm text-ink/50">Manage disputes, broken items, and replacement requests filed by your storefront buyers.</p>
         </div>
         
-        {/* SUB-FOLDER SEGMENTED CONTROLS */}
+        {/* SUB-FOLDER SEGMENTED CONTROLS — 100% SECURED ROUTING MATRIX */}
         <div className="flex flex-wrap gap-1.5 p-1 bg-ink/5 rounded-xl w-max max-w-full text-xs font-semibold">
           <button 
-            onClick={() => router.push('/seller/orders')} 
+            onClick={() => router.push(`/dashboard/${seller}/order`)} // 🟢 DYNAMIC CORRECTION
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              pathname === '/seller/orders' ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
+              pathname === `/dashboard/${seller}/order` ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
             }`}
           >
             <span>📋 All Orders</span>
           </button>
           <button 
-            onClick={() => router.push('/seller/orders/returns')} 
+            onClick={() => router.push(`/dashboard/${seller}/order/return`)} // 🟢 DYNAMIC CORRECTION (Aligned without trailing "s" structure matches)
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              pathname.includes('/returns') ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
+              pathname.includes('/return') ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
             }`}
           >
             <span>🔄 Customer Returns</span>
           </button>
           <button 
-            onClick={() => router.push('/seller/orders/logistics')} 
+            onClick={() => router.push(`/dashboard/${seller}/order/logistics`)} // 🟢 DYNAMIC CORRECTION
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              pathname === '/seller/orders/logistics' ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
+              pathname.includes('/logistics') ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
             }`}
           >
             <span>🚚 Logistics</span>
@@ -199,10 +205,11 @@ export default function SellerReturnsPage() {
                       </span>
                     </td>
                     
-                    {/* Active Form Controls — Tailwind v4 optimised buttons */}
+                    {/* Active Form Controls */}
                     <td className="py-4 px-6 text-right">
                       {item.status === 'pending' ? (
                         <div className="flex gap-2 justify-end">
+
                           <button
                             type="button"
                             disabled={isProcessing}

@@ -1,9 +1,11 @@
- import { createServerClient } from '@supabase/ssr';
+ // src/middleware.ts
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
   // 1. DYNAMIC RESPONSE ENGINE INITIALIZATION
-  let response = NextResponse.next({
+  // Gumawa ng iisang permanenteng response instance para sa buong lifecycle ng request
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -32,7 +34,7 @@ export async function middleware(request) {
     return response; 
   }
 
-  // 3. ASYNC COOKIE SYNC ENGINE (SUPABASE SSR MECHANISM)
+  // 3. ASYNC COOKIE SYNC ENGINE (SUPABASE SSR MECHANISM - FIXED)
   const supabase = createServerClient(
     supabaseUrl,
     supabaseAnonKey,
@@ -42,15 +44,12 @@ export async function middleware(request) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+          // SECURE FIX: I-update ang request at response cookies nang magkasabay 
+          // nang hindi sinisira o nire-reset ang NextResponse chain instance.
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
           });
-          
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
     }
@@ -59,8 +58,24 @@ export async function middleware(request) {
   // 🚀 DIRECT LIVE AUTH CONFIRMATION
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 4. API BACKGROUND CONTROLLERS BYPASS
+  // 4. API BACKGROUND CONTROLLERS SECURITY PATROL (UPGRADED GATEWAY)
   if (pathname.startsWith('/api')) {
+    // Payagan ang mga pampublikong webhooks (Inngest, Payments, at Auth callbacks)
+    const isPublicWebhook = 
+      pathname.startsWith('/api/webhook') || 
+      pathname.startsWith('/api/inngest') || 
+      pathname.startsWith('/api/payments/webhook') ||
+      pathname.startsWith('/api/auth/callback');
+
+    if (isPublicWebhook) {
+      return response;
+    }
+
+    // SECURITY CHECK: Kung ang API ay para sa dashboard/admin actions at walang rehistradong user, HARANGIN AGAD (401)
+    if (!user && (pathname.includes('/orders') || pathname.includes('/fulfill') || pathname.includes('/dashboard'))) {
+      return NextResponse.json({ error: 'UNAUTHORIZED_API_GATEWAY_BREACH' }, { status: 401 });
+    }
+
     return response;
   }
 
@@ -96,13 +111,13 @@ export async function middleware(request) {
   const firstSegment = pathSegments[0] || ''; 
   const secondSegment = pathSegments[1] || '';
 
-  // 🚀 FIXED & SELYADONG POSISYON NI isAuthOrOnboarding
+  // RE-ALIGNMENT FIXED
   const isAuthOrOnboarding =
     pathname === '/onboarding' ||
     pathname === '/login' ||
-    pathname === '/sign-up';
+    pathname === '/signup';
 
-  // 🚀 ABSOLUTE HARD LOCK INTERCEPTOR RULES FOR SYSTEM SAFETY:
+  // 🚀 ABSOLUTE HARD LOCK INTERCEPTOR RULES FOR SYSTEM SAFETY
   if (user && hasCheckedStore) {
     if (!userStoreSlug && !isAuthOrOnboarding) {
       const absoluteOnboardingUrl = new URL('/onboarding', request.url);
@@ -127,9 +142,9 @@ export async function middleware(request) {
     return NextResponse.redirect(absoluteLoginUrl);
   }
 
-  // 9. SUBDOMAIN REWRITE ENGINE DYNAMICS (FIXED: Itinama sa iyong actual 'store' directory template structure)
+  // 9. SUBDOMAIN REWRITE ENGINE DYNAMICS (CUSTOMER FRONTSTORE ROUTING)
   if (currentSlug && !['www', 'admin', 'seller'].includes(currentSlug)) {
-    url.pathname = `/store/${currentSlug}${pathname}`; // Inilapat ang /store prefix node para sa iyong sub-domains
+    url.pathname = `/store/${currentSlug}${pathname}`; 
     return NextResponse.rewrite(url, {
       request: {
         headers: response.headers,
@@ -137,7 +152,7 @@ export async function middleware(request) {
     });
   }
 
-  // 10. MULTI-TENANT CROSS-ACCESS PATROL
+  // 10. MULTI-TENANT CROSS-ACCESS PATROL (ANTI-HAMK CROSS SELLER)
   if (user && userStoreSlug && firstSegment === 'dashboard' && secondSegment) {
     if (secondSegment !== userStoreSlug) {
       const selfDashboardUrl = new URL(`/dashboard/${userStoreSlug}`, request.url);

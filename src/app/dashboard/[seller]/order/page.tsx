@@ -1,14 +1,19 @@
- // src/app/dashboard/[seller]/orders/page.tsx (o seller/orders/returns/page.tsx base sa directory tree layout niyan)
+ // src/app/dashboard/[seller]/order/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useParams } from 'next/navigation'; // 🟢 TINAMAAN: Idinagdag ang useParams hook layer para sa workspace tracking
 import { FileText, Calendar, ShoppingBag, RefreshCw, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function SellerOrdersPage() {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
+  
+  // 🟢 CORE TENANT EXTRACTOR: Kinukuha ang saktong workspace slug (e.g., 'manipu') nang walang hula
+  const seller = params.seller as string; 
+
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -40,16 +45,15 @@ export default function SellerOrdersPage() {
 
         const activeStoreId = storeData.id;
 
-        // 3. REAL DATABASE QUERY ENGINE: Kukuha ng totoong live entries mula sa public orders sheet logs
-        // Tinanggal ang lahat ng hardcoded example or mock validation fallback blocks context layers
+        // 3. REAL DATABASE QUERY ENGINE: Kukuha ng totoong live entries mula sa public orders table logs
         let query = supabase
           .from('orders')
           .select('id, total_amount, status, created_at')
           .eq('store_id', activeStoreId);
 
-        // CONDITIONAL INTERFACE FILTER RULE: Kung ang page na ito ay nakalagay sa /returns directory path,
-        // mag-filter lamang ng orders na may operational parameters na cancelled or pending transaction returns
-        if (pathname.includes('/returns')) {
+        // CONDITIONAL INTERFACE FILTER RULE: Kung ang page na ito ay nakalagay sa /return directory path,
+        // mag-filter lamang ng orders na may operational parameters na cancelled
+        if (pathname.includes('/return')) {
           query = query.eq('status', 'cancelled');
         }
 
@@ -68,6 +72,7 @@ export default function SellerOrdersPage() {
 
     fetchSellerOrders();
   }, [pathname, router]);
+
   return (
     <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto bg-paper text-ink font-body animate-in fade-in duration-300">
       
@@ -75,35 +80,37 @@ export default function SellerOrdersPage() {
       <div className="flex flex-col gap-5 border-b border-ink/5 pb-5">
         <div>
           <h1 className="font-display font-bold text-2xl md:text-3xl tracking-tight text-ink">
-            {pathname.includes('/returns') ? 'Customer Returns & Refunds' : 'Orders & Fulfillment'}
+            {pathname.includes('/return') ? 'Customer Returns & Refunds' : 'Orders & Fulfillment'}
           </h1>
           <p className="text-sm text-ink/50 mt-1">
-            {pathname.includes('/returns') 
+            {pathname.includes('/return') 
               ? 'Track cancelled transactions, reverse invoices, and review returned item catalog streams.' 
               : 'Track pending transactions, manage logistical status, and view customer purchase invoices.'}
           </p>
         </div>
         
-        {/* SUB-FOLDER SEGMENTED CONTROLS */}
+        {/* SUB-FOLDER SEGMENTED CONTROLS - 100% FIXED FROM 404 BLOCKS */}
         <div className="flex flex-wrap gap-1.5 p-1 bg-ink/5 rounded-xl w-max max-w-full text-xs font-semibold">
           <button 
-            onClick={() => router.push('/seller/orders')} 
+            onClick={() => router.push(`/dashboard/${seller}/order`)} 
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              pathname === '/seller/orders' ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
+              pathname === `/dashboard/${seller}/order` ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
             }`}
           >
             <span>📋 All Orders</span>
           </button>
+          
           <button 
-            onClick={() => router.push('/seller/orders/returns')} 
+            onClick={() => router.push(`/dashboard/${seller}/order/return`)} 
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
-              pathname.includes('/returns') ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
+              pathname.includes('/return') ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
             }`}
           >
             <span>🔄 Customer Returns</span>
           </button>
+          
           <button 
-            onClick={() => router.push('/seller/orders/logistics')} 
+            onClick={() => router.push(`/dashboard/${seller}/order/logistics`)} 
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
               pathname.includes('/logistics') ? 'bg-white text-ink shadow-sm font-bold' : 'text-ink/60 hover:text-ink'
             }`}
@@ -133,7 +140,7 @@ export default function SellerOrdersPage() {
             <ShoppingBag size={20} />
           </div>
           <p className="max-w-md mx-auto leading-relaxed text-xs">
-            {pathname.includes('/returns') 
+            {pathname.includes('/return') 
               ? 'No cancelled or returned order transactions logs recorded for your shop yet.' 
               : 'No orders received yet. Once customers purchase from your storefront catalog, incoming logs will record here.'}
           </p>
@@ -190,12 +197,13 @@ export default function SellerOrdersPage() {
                       </span>
                     </td>
                     
-                    {/* Action Trigger */}
+                    {/* Action Trigger - 100% FIXED DYNAMIC LINK */}
                     <td className="py-4 px-6 text-right">
                       <button 
-                        onClick={() => router.push(`/seller/orders/${order.id}`)}
+                        onClick={() => router.push(`/dashboard/${seller}/order/${order.id}`)}
                         className="inline-flex items-center gap-1.5 bg-ink text-paper font-semibold px-3 py-2 rounded-xl text-[11px] hover:bg-ink/90 transition-all shadow-sm active:scale-95 group cursor-pointer"
                       >
+                        <span>Manage Order</span>
                         <span>Manage Order</span>
                         <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform pointer-events-none" />
                       </button>

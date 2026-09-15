@@ -1,4 +1,5 @@
- import React from 'react';
+ // src/app/dashboard/[seller]/layout.tsx
+import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
@@ -33,8 +34,7 @@ export default async function SellerLayout({
   // Sa Next.js 15, kailangan i-await ang params bago basahin ang dynamic segment handle
   const { seller } = await params;
 
-  // 🚀 HIGHWAY ROUTING MAP: Lahat ng iyong folders ay 100% interconnected na ngayon gamit ang orihinal mong style scheme
-  // Grouped by what a seller actually does day-to-day, instead of one long flat list.
+  // 🚀 HIGHWAY ROUTING MAP: Ginamit ang singular na 'order' para tumugma sa iyong folder architecture
   const NAV_GROUPS = [
     {
       label: 'Overview',
@@ -46,6 +46,7 @@ export default async function SellerLayout({
       label: 'Catalog & orders',
       items: [
         { href: `/dashboard/${seller}/product`, label: 'Products', icon: Package },
+        // 🟢 INAYOS: Ibinalik sa singular na 'order' upang sumunod sa iyong gustong folder naming
         { href: `/dashboard/${seller}/order`, label: 'Orders & shipping', icon: Receipt },
         { href: `/dashboard/${seller}/order/logistics`, label: 'Logistics control', icon: Truck },
       ],
@@ -55,7 +56,8 @@ export default async function SellerLayout({
       items: [
         { href: `/dashboard/${seller}/finance`, label: 'Finance & income', icon: Wallet },
         { href: `/dashboard/${seller}/marketing`, label: 'Vouchers & ads', icon: Tag },
-        { href: `/dashboard/${seller}/insights`, label: 'Insights', icon: BarChart3 },
+        // 🟢 INAYOS: Ginawang singular na 'insight' para tumugma sa folder structure mo
+        { href: `/dashboard/${seller}/insight`, label: 'Insights', icon: BarChart3 },
       ],
     },
     {
@@ -109,7 +111,6 @@ export default async function SellerLayout({
 
         {/* Profile footer and safety logout controller */}
         <div className="border-t border-dashed border-paper/15 pt-4 space-y-1">
-          {/* 🟢 GINADAGDAG: Tinamaang landas patungong settings main root folder (may "s" at walang sub-path) */}
           <Link
             href={`/dashboard/${seller}/setting`}
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-paper/60 hover:bg-paper/10 hover:text-paper transition-colors"

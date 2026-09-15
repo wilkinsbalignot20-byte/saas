@@ -1,5 +1,37 @@
  // src/app/page.tsx
 import Link from 'next/link';
+import { Plus } from 'lucide-react';
+
+const FAQ_ITEMS = [
+  {
+    q: 'What is Manipu?',
+    a: 'Manipu is a storefront platform for independent Filipino merchants — like having your own Shopify or Lazada shop, but fully yours. Every seller gets a dedicated store with its own products, branding, and customers.',
+  },
+  {
+    q: 'How much does it cost to open a store?',
+    a: 'Creating your seller account and setting up your storefront is free — no credit card required to start. You only pay when you actually make a sale.',
+  },
+  {
+    q: 'Do I need a business permit or DTI registration to sell?',
+    a: 'No, you can start selling as an individual seller right away. If you grow into a registered business later, you can add that information to your store profile anytime.',
+  },
+  {
+    q: 'How do payments and payouts work?',
+    a: 'Customers pay by card or e-wallet at checkout, and Manipu handles the processing for you. Your balance updates automatically, and you can track and withdraw your payouts from your seller dashboard.',
+  },
+  {
+    q: 'Which couriers can I ship with?',
+    a: 'You can print shipping labels and book pickups with J&T, Flash Express, and SPX directly from your dashboard — no need to juggle multiple courier apps.',
+  },
+  {
+    q: 'Can I use my own branding and colors?',
+    a: "Yes. Your logo, brand color, and layout are yours to customize, so your store doesn't look like a copy of anyone else's — even though every store runs on the same platform underneath.",
+  },
+  {
+    q: 'How is this different from selling on Shopee or Lazada?',
+    a: 'Those marketplaces put your products next to competitors on their platform. With Manipu, you get your own dedicated store address that customers can find, follow, and buy from directly — while still getting built-in payments, shipping, and inventory tools.',
+  },
+];
 
 export default function SaasLandingPage() {
   return (
@@ -13,6 +45,7 @@ export default function SaasLandingPage() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink/70">
             <a href="#how-it-works" className="hover:text-ink transition-colors">How it works</a>
             <a href="#audiences" className="hover:text-ink transition-colors">For sellers</a>
+            <a href="#faq" className="hover:text-ink transition-colors">FAQ</a>
             <Link href="/explore" className="hover:text-ink transition-colors">Explore stores</Link>
           </nav>
           <div className="flex items-center gap-3">
@@ -97,7 +130,7 @@ export default function SaasLandingPage() {
           {/* BOX 2: Infinity Gems Coffee */}
           <Link href="/explore" className="absolute top-24 right-2 w-72 rotate-3 rounded-2xl bg-teal text-white p-5 shadow-xl block hover:-translate-y-1 transition-transform cursor-pointer group select-none overflow-hidden">
             <div className="flex items-center justify-between mb-4">
-              <span className="font-display font-semibold text-sm group-hover:text-marigold transition-colors">Infinity Gems Coffee</span>
+              <span className="font-display font-semibold text-sm group-hover:text-marigold transition-colors">Coffee Shop</span>
               <span className="w-2 h-2 rounded-full bg-white" />
             </div>
             
@@ -233,6 +266,40 @@ export default function SaasLandingPage() {
               <p className="text-sm text-paper/50">See what&apos;s selling and who&apos;s buying.</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="max-w-6xl mx-auto px-6 py-24">
+        <div className="max-w-xl mb-14">
+          <p className="text-sm font-semibold text-marigold-dark mb-3">FAQ</p>
+          <h2 className="font-display font-bold text-3xl mb-4">
+            Questions merchants usually ask
+          </h2>
+          <p className="text-ink/60 leading-relaxed">
+            Everything you need to know before opening your store. Still have a question?{' '}
+            <a href="mailto:hello@manipu.ph" className="text-ink underline underline-offset-4 decoration-ink/30 hover:decoration-ink">
+              Reach out to us
+            </a>.
+          </p>
+        </div>
+
+        <div className="max-w-3xl border-t border-ink/10">
+          {FAQ_ITEMS.map((item) => (
+            <details key={item.q} className="group border-b border-ink/10 py-5">
+              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-semibold text-ink">
+                <span>{item.q}</span>
+                <Plus
+                  size={18}
+                  strokeWidth={1.75}
+                  className="shrink-0 text-ink/40 transition-transform duration-200 group-open:rotate-45"
+                />
+              </summary>
+              <p className="text-sm text-ink/60 leading-relaxed mt-3 max-w-2xl">
+                {item.a}
+              </p>
+            </details>
+          ))}
         </div>
       </section>
 
